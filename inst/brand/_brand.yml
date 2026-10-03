@@ -1,0 +1,86 @@
+# _brand.yml for Island Health (ISLH)
+#
+# Sourced from the ISLH brand standards site (brand.islandhealth.ca). The
+# captures guidelines/colour.mhtml, guidelines/typography.mhtml and
+# guidelines/logo-system.mhtml, and the logo sources, live in the
+# islh-brand-standard repository.
+#
+# Notes on sourcing:
+# - Blue is documented as the primary colour family; "Blue 50" (#007cc8) is
+#   used here as the general-purpose primary and closely matches the blue
+#   used in the logo artwork itself (#007bcb in the full-colour SVG).
+# - Grey/Red/Green/Orange use the specific swatches the guidelines label
+#   "Conventional signal colours" (guidelines/colour.mhtml, "Using colour to
+#   communicate meaning") rather than a generic step from the colour ramp,
+#   since those are the values the brand designates for status/meaning.
+# - Thistle/Fern/Cedar use the "Low-signal colours" swatches from the same
+#   section, since the guidelines call these out as the representative
+#   values for using those families decoratively.
+# - Island Health's colour system is a full tint/shade ramp (8 families x
+#   ~20 steps). Only representative swatches are included here to keep this
+#   file concise; see guidelines/colour.mhtml for the complete ramp.
+
+meta:
+  name: Island Health
+  link: https://www.islandhealth.ca
+
+color:
+  palette:
+    blue: "#007cc8" # Blue 50 - primary colour family
+    blue-dark: "#004979" # Blue 30 - used in the single-colour "Dark Blue" logo lockup
+    blue-light: "#95cdff" # Blue 80
+    grey: "#6e767a" # Grey 49 - accessible neutral signal swatch
+    red: "#c02039" # Red 45 - accessible danger/error signal swatch
+    green: "#368272" # Green 48 - accessible success signal swatch
+    orange: "#bb5b27" # Orange 51 - accessible warning signal swatch
+    thistle: "#b351a3" # Thistle 52 - supplementary family (low-signal swatch)
+    fern: "#4b6927" # Fern 40 - supplementary family (low-signal swatch)
+    cedar: "#977000" # Cedar 50 - supplementary family (low-signal swatch)
+    white: "#ffffff"
+    black: "#141718" # Grey 10 - near-black, used for body text
+  foreground: black
+  background: white
+  primary: blue
+  secondary: grey
+  success: green
+  warning: orange
+  danger: red
+
+typography:
+  fonts:
+    - family: BC Sans
+      source: system # Not distributed via Google/Bunny Fonts; BC Sans is
+      # licensed by the BC Government (gov.bc.ca) and installed on Island
+      # Health laptops. Elsewhere, install it from
+      # https://github.com/bcgov/bc-sans.
+      weight: [300, 400, 700] # Light, Regular, Bold
+      style: [normal, italic]
+    - family: Noto Sans
+      source: google
+      weight: [400, 700]
+      style: [normal, italic]
+  base:
+    family: BC Sans
+    weight: 400
+  headings:
+    family: BC Sans
+    weight: 700
+  link:
+    color: primary
+
+logo:
+  # Paths are relative to this file. islh_use_brand() copies these alongside
+  # it; the originals live in the islh-brand-standard repository under folder
+  # names with spaces and periods that do not travel well.
+  images:
+    stacked-full-colour: "logos/islh-logo-stacked-full-colour.svg"
+    stacked-dark-blue: "logos/islh-logo-stacked-dark-blue.svg"
+    stacked-white: "logos/islh-logo-stacked-white.svg"
+    horizontal-full-colour: "logos/islh-logo-horizontal-full-colour.svg"
+    horizontal-dark-blue: "logos/islh-logo-horizontal-dark-blue.svg"
+    horizontal-white: "logos/islh-logo-horizontal-white.svg"
+  small: stacked-dark-blue
+  medium:
+    light: horizontal-full-colour
+    dark: horizontal-white
+  large: horizontal-full-colour

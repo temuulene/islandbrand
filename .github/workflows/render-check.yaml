@@ -1,0 +1,78 @@
+# Renders a scaffolded project end to end.
+#
+# This is the acceptance test: a staff member runs islh_create_report() and
+# clicks Render. Unit tests cannot tell you that Quarto resolved the format,
+# found the reference document and produced a file.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+name: render-check
+
+permissions: read-all
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: local::.
+          needs: check
+
+      - name: Scaffold and render every format
+        run: |
+          # "both" is a distinct path: one report.qmd that picks its table
+          # engine at render time, and a dependency set that is the union of
+          # the two. Rendering html and docx separately does not exercise it.
+          for fmt in html docx both; do
+            Rscript -e "islandbrand::islh_create_report('check-$fmt', format = '$fmt')"
+            (cd "check-$fmt" && quarto render report.qmd)
+          done
+        shell: bash
+
+      - name: Check the output is real
+        run: |
+          test -s check-html/report.html || { echo "no HTML output"; exit 1; }
+          test -s check-docx/report.docx || { echo "no DOCX output"; exit 1; }
+          # "both" must produce both files from the one project.
+          test -s check-both/report.html || { echo "no HTML from both"; exit 1; }
+          test -s check-both/report.docx || { echo "no DOCX from both"; exit 1; }
+          # Every logo _brand.yml names has to exist next to it, or Quarto
+          # silently drops the branding.
+          for svg in $(grep -o 'logos/[a-z-]*\.svg' check-docx/_brand.yml); do
+            test -f "check-docx/$svg" || { echo "missing $svg"; exit 1; }
+          done
+          # A branded Word report carries the logo and the header part. If the
+          # reference document were ignored, neither would be there.
+          unzip -l check-docx/report.docx | grep -q "word/media/" \
+            || { echo "reference document was not applied"; exit 1; }
+          unzip -l check-docx/report.docx | grep -q "word/header1.xml" \
+            || { echo "letterhead header missing"; exit 1; }
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rendered-reports
+          path: |
+            check-html/report.html
+            check-docx/report.docx
+            check-both/report.html
+            check-both/report.docx

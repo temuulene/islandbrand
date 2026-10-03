@@ -1,0 +1,225 @@
+---
+title: "Getting started with islandbrand"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with islandbrand}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 7,
+  fig.height = 4
+)
+library(islandbrand)
+islh_setup(format = "html", quiet = TRUE)
+```
+
+`islandbrand` gives figures, tables and Quarto reports one consistent Island
+Health visual system. This guide starts with working output, then explains which
+function to use for each task.
+
+## Choose a starting point
+
+| I want to... | Start with | What it returns |
+|---|---|---|
+| Configure a report | `islh_setup()` | Plot and table defaults for the current format |
+| Make a branded plot | `theme_islh()` and a `scale_*_islh()` function | A ggplot object |
+| Make an HTML table | `islh_gt()` | A `gt` table |
+| Make a Word table | `islh_flextable()` | A `flextable` object |
+| Start a report project | `islh_create_report()` | A ready-to-render Quarto project |
+| Find a colour | `islh_brand()` or `islh_hex()` | Hex colour values |
+| Draw a health-geography map | `theme_islh_map()` and `coord_islh_map()` | Map theme and coordinates |
+
+## A complete first example
+
+The package includes a small data set so every example can run without a
+network connection.
+
+```{r example-data}
+counts <- islh_example_data()
+counts
+```
+
+An ordinary ggplot becomes an Island Health figure by adding the appropriate
+scale. `islh_setup()` has already applied the theme.
+
+```{r example-figure, fig.alt="Bar chart showing encounters for three example Island Health programs."}
+library(ggplot2)
+
+encounter_plot <- ggplot(counts, aes(program, encounters, fill = program)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_islh() +
+  scale_y_islh_count() +
+  labs(
+    title = "Encounters by program",
+    subtitle = "Example data included with islandbrand",
+    x = NULL,
+    y = "Encounters"
+  )
+
+encounter_plot
+```
+
+For HTML, pass the same data frame to `islh_gt()`. The returned object is still
+a regular `gt` table, so formatting can be added before or after applying the
+theme.
+
+```{r example-table}
+islh_gt(
+  counts,
+  title = "Program activity",
+  subtitle = "Illustrative values",
+  source_note = "Source: simulated package data."
+)
+```
+
+For Word, replace that call with `islh_flextable(counts)`. The Word table is
+rendered by Word rather than the browser, so it is demonstrated in the
+generated report project instead of duplicated on this HTML page.
+
+## Set up a report
+
+Put one setup call near the top of a Quarto document:
+
+````
+```r
+#| label: setup
+#| include: false
+library(islandbrand)
+islh_setup()
+```
+````
+
+With `format = "auto"`, the default, `islh_setup()` detects HTML or Word and
+selects the matching table system. Outside a render it configures plots only.
+Loading the package by itself does not change themes or options.
+
+### Putting the session back
+
+`islh_setup()` changes the session, not just the next plot: the active ggplot2
+theme, the geom defaults, knitr's graphics device and the table settings. That
+is what a report render wants, since the session exists to produce one
+document. It is rarely what you want at the console.
+
+`islh_reset()` undoes it:
+
+```{r reset, message=TRUE}
+islh_setup()
+# ... make some figures ...
+islh_reset()
+```
+
+```{r reset-restore, include=FALSE}
+# Put this article's own setup back for the chunks that follow.
+islh_setup(format = "html", quiet = TRUE)
+```
+
+`with_islh()` applies the theme around one block and restores the session
+afterwards, including when the block fails. Use it inside a function, in a
+test, or whenever the theme should not outlive the code that wanted it:
+
+```{r with-islh}
+before <- ggplot2::theme_get()
+
+plot <- with_islh(
+  ggplot2::ggplot(datasets::mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point(),
+  format = "plots"
+)
+
+# The plot keeps the Island Health styling; the session does not.
+identical(ggplot2::theme_get(), before)
+```
+
+A plot returned from the block takes its own copy of the theme, the default
+colour scales and the geom colours, so it looks the same when you print it
+later.
+
+Check optional dependencies before rendering a report:
+
+```{r dependency-check}
+check <- islh_check("html", quiet = TRUE)
+check[c("format", "tables", "ok")]
+```
+
+If `ok` is `FALSE`, run `islh_install_deps("html")`, `"docx"` or `"both"` once
+on that computer.
+
+## Colours and scales
+
+Use role names when the colour has a meaning. This keeps the report aligned if
+the brand tokens change later.
+
+```{r brand-colours}
+islh_brand("primary")
+islh_brand(c("success", "warning", "danger"))
+islh_hex("blue", c(30, 50, 80))
+```
+
+Use the scale that matches the data:
+
+| Data meaning | Function | Typical use |
+|---|---|---|
+| Unordered categories | `scale_colour_islh()` or `scale_fill_islh()` | Programs or regions |
+| Ordered categories | `scale_*_islh_ordinal()` | Low, medium and high |
+| Status | `scale_*_islh_signal()` | Good, warning and bad |
+| Continuous values in bands | `scale_fill_islh_b()` | Choropleth maps |
+
+The qualitative scale is intentionally limited to five categories. If the
+plot has more groups, combine small groups, facet the figure or label lines
+directly instead of asking colour alone to carry the distinction.
+
+## Save output consistently
+
+`islh_save_plot()` applies standard report or slide dimensions and uses a
+high-quality raster device when available.
+
+```{r save-plot}
+path <- file.path(tempdir(), "encounters.png")
+islh_save_plot(path, encounter_plot, preset = "report")
+```
+
+It returns the saved path invisibly. This is the file it wrote, 6.5 by 4.2
+inches at 300 dots per inch:
+
+```{r save-plot-show, echo=FALSE, out.width="100%", fig.alt="The saved report-size PNG of the encounters bar chart."}
+# Copy the saved file next to the article's own figures so the website
+# publishes it, then show it.
+shown <- knitr::fig_path(".png")
+dir.create(dirname(shown), recursive = TRUE, showWarnings = FALSE)
+invisible(file.copy(path, shown, overwrite = TRUE))
+knitr::include_graphics(shown)
+```
+
+## Start a full report
+
+```{r create-report, message=TRUE}
+project <- file.path(tempdir(), "2026-flu-season")
+islh_create_report(project, format = "both")
+list.files(project)
+```
+
+Here the project goes to a temporary folder; give your own path in practice.
+
+The project contains a working report, the Island Health Quarto extension,
+brand configuration and example data. Open the generated `.Rproj`, replace the
+example values, and render. See [Writing reports](reports.html) for the complete
+workflow and [Mapping BC health geographies](maps.html) for maps.
+
+## Common problems
+
+- A table function reports a missing package: run `islh_check()` and install
+  the dependency set for the output format.
+- A plot uses an unexpected font: run `islh_font_family()` to see which family
+  was selected. BC Sans is not bundled with the package.
+- A Word render cannot replace its output: close the `.docx` file before
+  rendering again.
+- A map looks stretched: add `coord_islh_map()` so it uses BC Albers.
+
+Run `islh_help()` for a compact console reference when working interactively.

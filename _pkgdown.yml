@@ -1,0 +1,108 @@
+url: https://temuulene.github.io/islandbrand/
+
+template:
+  bootstrap: 5
+  bslib:
+    base_font: "BC Sans"
+    heading_font: "BC Sans"
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+  components:
+    articles:
+      text: Guides
+      menu:
+        - text: Getting started
+          href: articles/islandbrand.html
+        - text: Surveillance figures
+          href: articles/surveillance.html
+        - text: Writing reports
+          href: articles/reports.html
+        - text: Mapping health geographies
+          href: articles/maps.html
+        - text: Moving from the theme script
+          href: articles/migrating.html
+
+articles:
+  - title: Figures
+    contents:
+      - surveillance
+  - title: Reports
+    contents:
+      - reports
+      - migrating
+  - title: Maps
+    contents:
+      - maps
+
+reference:
+  - title: Setting up
+    desc: >
+      Run `islh_setup()` once at the top of a report. It works out whether you
+      are rendering to HTML or Word and configures plots and tables to match.
+    contents:
+      - islh_setup
+      - islh_reset
+      - with_islh
+      - islh_check
+      - islh_install_deps
+      - islh_help
+      - islh_version
+
+  - title: Starting a report
+    desc: Scaffold a project, or add the Island Health format to one you have.
+    contents:
+      - islh_create_report
+      - islh_use_quarto
+      - islh_use_brand
+
+  - title: Keeping a report up to date
+    desc: >
+      Bring an existing project's Quarto extension and brand files forward to
+      the installed version of the package, without losing local edits.
+    contents:
+      - islh_check_project
+      - islh_update_project
+
+  - title: Figures
+    desc: Build branded plots, including routine surveillance and epi curves.
+    contents:
+      - islh_epi_curve
+      - theme_islh
+      - starts_with("scale_colour_islh")
+      - starts_with("scale_fill_islh")
+      - scale_y_islh_count
+      - islh_save_plot
+      - islh_example_plot
+
+  - title: Maps
+    desc: >
+      Style choropleths of Island Health geographies, give each local health
+      area its own colour, and document the sources.
+    contents:
+      - theme_islh_map
+      - coord_islh_map
+      - scale_fill_islh_area
+      - islh_areas
+      - islh_area_labels
+      - islh_example_lha
+      - islh_caption
+
+  - title: Colours and assets
+    contents:
+      - islh_brand
+      - islh_hex
+      - islh_font_family
+      - islh_logo
+      - islh_brand_yml
+      - islh_reference_docx
+      - islh_example_data
+
+  - title: Tables
+    desc: Create consistent HTML and Word tables from ordinary data frames.
+    contents:
+      - islh_gt
+      - islh_flextable
+      - islh_gtsummary_gt
+      - islh_gtsummary_flex

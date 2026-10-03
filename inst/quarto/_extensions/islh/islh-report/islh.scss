@@ -1,0 +1,64 @@
+/*-- scss:defaults --*/
+// Quarto reads _brand.yml for the palette and typography, so this layer only
+// covers what brand.yml has no slot for. Keep it thin: anything expressible
+// as a brand colour belongs in _brand.yml, not here.
+
+// Blue 96 and Grey 85 from the Island Health ramp. These match the Word
+// reference document's table band and borders, so HTML and Word agree.
+$islh-table-header-bg: #eaf5ff !default;
+$islh-rule: #d1d5d7 !default;
+$islh-caption: #414749 !default;
+
+// Heading colour. This is the letterhead Office theme's "dk2" slot, the same
+// value the Word reference document uses, so an HTML report and a Word report
+// of the same content look like siblings. It sits a couple of steps off the
+// nearest brand ramp value (Blue 20, #003053) because the official Office
+// theme, not the ramp, is what Word matches against.
+$islh-heading: #003051 !default;
+
+/*-- scss:rules --*/
+
+// Tables. The brand standard bands the header row rather than boxing cells.
+.table > thead {
+  background-color: $islh-table-header-bg;
+  border-bottom: 2px solid $islh-rule;
+}
+
+.table > thead th {
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+.table > tbody > tr > td,
+.table > tbody > tr > th {
+  border-top: 1px solid $islh-rule;
+}
+
+// Figure and table captions sit at 9pt grey in the Word template; match it.
+figcaption,
+caption,
+.figure-caption,
+.table-caption {
+  color: $islh-caption;
+  font-size: 0.8rem;
+}
+
+// Quarto centres figures by default; the brand's layout grid is left-aligned.
+figure {
+  margin-left: 0;
+}
+
+// Headings. brand.yml sets the family and weight; it has no slot for a heading
+// colour, so it lands here.
+h1, h2, h3, h4, h5, h6,
+.title, .subtitle,
+#title-block-header .quarto-title h1 {
+  color: $islh-heading;
+}
+
+// The subtitle and the author/date block sit in grey, matching the Word
+// template's metadata styling.
+.subtitle,
+#title-block-header .quarto-title-meta {
+  color: $islh-caption;
+}

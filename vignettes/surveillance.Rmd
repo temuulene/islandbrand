@@ -1,0 +1,183 @@
+---
+title: "Surveillance figures and epidemic curves"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Surveillance figures and epidemic curves}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 8,
+  fig.height = 4.5,
+  fig.retina = 2
+)
+library(islandbrand)
+islh_setup(format = "html", quiet = TRUE)
+```
+
+`islh_epi_curve()` creates a complete Island Health surveillance figure from
+prepared counts. It returns an ordinary ggplot, so titles, annotations, scales
+and additional layers can be changed with ggplot2.
+
+Counting and plotting are deliberately separate. When starting from a line
+list, create complete counts with `islandepi::islh_count_events()` and pass its
+result to this function.
+
+## Routine weekly surveillance
+
+The input needs a date column and a whole-count column. This example is already
+aggregated by week and source.
+
+```{r weekly-data}
+weeks <- seq(as.Date("2026-01-04"), by = "week", length.out = 14)
+
+weekly_counts <- data.frame(
+  period_start = rep(weeks, each = 2),
+  source = rep(c("Community", "Facility"), times = length(weeks)),
+  count = c(
+    1, 0, 2, 1, 2, 1, 4, 2, 6, 3, 9, 4, 8, 3,
+    6, 2, 5, 2, 4, 1, 3, 1, 2, 1, 1, 0, 1, 0
+  )
+)
+
+head(weekly_counts)
+```
+
+```{r weekly-curve, fig.alt="Stacked weekly epidemic curve rising to a peak and declining, split between community and facility reports."}
+islh_epi_curve(
+  weekly_counts,
+  date = period_start,
+  count = count,
+  fill = source,
+  labels = "total",
+  title = "Reported cases by week",
+  subtitle = "Illustrative surveillance data",
+  caption = "Source: simulated package example."
+)
+```
+
+The bar width is inferred from the distance between dates. Weekly observations
+therefore fill most of the week instead of rendering as one-day-wide bars.
+
+Use `position = "dodge"` when the group comparison matters more than the total:
+
+```{r dodged-curve, fig.alt="Grouped weekly bars comparing community and facility reports."}
+islh_epi_curve(
+  weekly_counts,
+  date = period_start,
+  count = count,
+  fill = source,
+  position = "dodge",
+  title = "Weekly reports by source"
+)
+```
+
+## One rectangle per case
+
+For a small outbreak, `style = "cases"` outlines each case. The default remains
+ordinary bars because routine surveillance counts can be too large to expand
+into thousands of rectangles.
+
+```{r case-curve, fig.alt="Small epidemic curve with one outlined rectangle for every case."}
+small_outbreak <- data.frame(
+  onset_date = rep(as.Date("2026-03-01") + 0:9, each = 2),
+  exposure = rep(c("Known exposure", "Under investigation"), 10),
+  count = c(0, 1, 1, 1, 2, 1, 4, 2, 6, 3, 5, 2, 3, 2, 2, 1, 1, 1, 0, 1)
+)
+
+islh_epi_curve(
+  small_outbreak,
+  date = onset_date,
+  count = count,
+  fill = exposure,
+  style = "cases",
+  title = "Cases by symptom-onset date",
+  y = "Cases"
+)
+```
+
+The function stops before creating more than 50,000 rectangles. Increase
+`max_cases` only when an individual-case display is genuinely required.
+
+## Historical reference range
+
+Supply a separate data frame with dates and lower and upper limits. A
+`reference_mean` column adds a dashed centre line.
+
+```{r reference-curve, fig.alt="Weekly epidemic curve over a grey historical reference range and dashed historical mean."}
+totals <- aggregate(count ~ period_start, weekly_counts, sum)
+
+historical_reference <- data.frame(
+  period_start = weeks,
+  lower_limit = pmax(0, c(0, 0, 1, 1, 2, 2, 3, 2, 2, 1, 1, 0, 0, 0)),
+  upper_limit = c(4, 4, 5, 6, 7, 9, 10, 9, 8, 7, 6, 5, 4, 4),
+  reference_mean = c(2, 2, 3, 3, 4, 5, 6, 5, 5, 4, 3, 3, 2, 2)
+)
+
+islh_epi_curve(
+  totals,
+  date = period_start,
+  count = count,
+  reference = historical_reference,
+  title = "Weekly cases compared with historical activity",
+  subtitle = "The grey band is descriptive, not an outbreak declaration"
+)
+```
+
+The function draws the reference but does not interpret it. Add an annotation
+or signal layer only after applying the surveillance program's approved rule.
+
+## Facet by geography
+
+```{r faceted-curve, fig.alt="Two small-multiple epidemic curves for North and South regions."}
+regional <- rbind(
+  transform(weekly_counts, region = "North", count = pmax(0, count - 1)),
+  transform(weekly_counts, region = "South")
+)
+
+islh_epi_curve(
+  regional,
+  date = period_start,
+  count = count,
+  fill = source,
+  facet = region,
+  title = "Reported cases by region"
+)
+```
+
+For many geographic groups, faceting is generally easier to read than assigning
+every geography a different colour.
+
+## Start from event-level data
+
+The complete two-package workflow is:
+
+```{r two-package-workflow, eval=FALSE}
+counts <- islandepi::islh_count_events(
+  linelist,
+  date = surveillance_date,
+  id = investigation_id,
+  by = c(condition, region),
+  interval = "epiweek",
+  fill = TRUE,
+  include_partial = FALSE
+)
+
+islh_epi_curve(
+  counts,
+  date = period_start,
+  count = count,
+  fill = condition,
+  facet = region,
+  title = "Weekly communicable disease reports"
+)
+```
+
+The plotting package does not depend on `islandepi`; prepared counts from
+another validated workflow work equally well.

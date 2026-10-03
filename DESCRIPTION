@@ -1,0 +1,48 @@
+Package: islandbrand
+Title: Island Health Branding for R Figures, Tables and Reports
+Version: 0.1.0
+Authors@R:
+    person("Temuulen", "Enebish", , "temuulen@gmail.com", role = c("aut", "cre"))
+Description: Applies Island Health brand colours, typography and layout to
+    ggplot2 figures, including epidemic curves and surveillance graphics,
+    flextable and gt tables, and Quarto HTML and Word reports. Includes project
+    scaffolding for reproducible reports used by the PHASE team.
+License: file LICENSE
+Encoding: UTF-8
+Language: en-CA
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Depends:
+    R (>= 4.1)
+Imports:
+    cli,
+    ggplot2 (>= 3.5.0),
+    grDevices,
+    grid,
+    rlang,
+    scales,
+    stats,
+    systemfonts,
+    tools,
+    utils
+Suggests:
+    base64enc,
+    flextable (>= 0.9.10),
+    ggnewscale,
+    gt,
+    gtsummary (>= 2.0.0),
+    htmltools,
+    knitr,
+    officer,
+    patchwork,
+    ragg,
+    rmarkdown,
+    sf,
+    testthat (>= 3.0.0),
+    withr,
+    yaml
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://temuulene.github.io/islandbrand/,
+    https://github.com/temuulene/islandbrand
+BugReports: https://github.com/temuulene/islandbrand/issues

@@ -1,0 +1,94 @@
+---
+title: "Moving from the theme script"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Moving from the theme script}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(islandbrand)
+```
+
+If your project has an `R/island-health-ggplot-theme.R` in it, it came from a
+starter-kit ZIP. This is how to move it to the package.
+
+```{r installed-version}
+islh_version()
+```
+
+## What changes
+
+Nothing about the function names. `theme_islh()`, `islh_setup()`,
+`islh_flextable()` and the rest work exactly as before. What changes is where
+they come from: the package, rather than a copy of the script inside your
+project. A fix then reaches your report the next time you update `islandbrand`,
+instead of the next time you download a ZIP.
+
+## The three steps
+
+**1. Install the package.**
+
+```{r install-package, eval=FALSE}
+install.packages("remotes", type = "binary")
+remotes::install_github("temuulene/islandbrand")
+```
+
+**2. Change the setup chunk.** Replace:
+
+```{r old-setup, eval=FALSE}
+source("R/island-health-ggplot-theme.R")
+islh_setup()
+```
+
+with:
+
+```{r new-setup, message=TRUE, warning=FALSE}
+library(islandbrand)
+islh_setup()
+```
+
+In a rendered document, as here, setup detects HTML or Word and sets up the
+matching tables. At the console it configures plots only.
+
+**3. Delete the copied script**, and the `R/` folder if it holds nothing else.
+
+For a Word report, also run `islh_use_quarto()` and point the front matter at
+`format: islh-report-docx`. That replaces the loose `islh-report-reference.docx`
+and the hand-written `reference-doc:` line; you can delete the local copy of
+the reference document.
+
+## Things that are gone
+
+- **`islh_theme_version`** is replaced by `islh_version()`, which reads the
+  installed package version. There is no longer a version string inside a
+  script to keep in step with anything.
+- **`install-packages.R`** is replaced by `islh_install_deps()`. It follows the
+  same rules — base R, binary packages, never `pak` — but lives in one place
+  rather than in a copy inside every project.
+- **The starter-kit ZIPs** are replaced by `islh_create_report()`.
+
+## One thing that may now fail loudly
+
+The package declares minimum versions the script never did:
+
+- **ggplot2 3.5.0** for the colour scales. On an older ggplot2 they used to
+  fail inside ggplot2 with `argument "scale_name" is missing`.
+- **flextable 0.9.10** for `islh_flextable()`. On an older flextable it used to
+  fail with `unused argument (repeat_headers = TRUE)`.
+
+If a report that used to run now stops with a clear message naming one of
+these, that is the version gate doing its job. `islh_install_deps()` will
+bring the package up to date.
+
+## If you cannot install packages
+
+Some machines will not let you. `islh_check()` will tell you what is missing,
+and your team lead can supply a built copy of `islandbrand` to install from a
+file:
+
+```{r install-file, eval=FALSE}
+install.packages("path/to/islandbrand_0.4.0.zip", repos = NULL)
+```

@@ -1,0 +1,30 @@
+Binding: islh_report_skeleton
+Title: Island Health report
+Subtitle: A branded Quarto report
+Caption: Creates a Quarto project that renders with Island Health branding.
+OpenFiles: report.qmd
+
+Parameter: format
+Widget: SelectInput
+Label: Output format
+Fields: html, docx, both
+Default: docx
+Position: left
+
+Parameter: title
+Widget: TextInput
+Label: Report title
+Default: Island Health report
+Position: left
+
+Parameter: author
+Widget: TextInput
+Label: Author
+Default:
+Position: left
+
+Parameter: example_data
+Widget: CheckboxInput
+Label: Include a worked example
+Default: On
+Position: left

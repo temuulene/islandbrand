@@ -1,0 +1,440 @@
+---
+title: "Mapping BC health geographies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Mapping BC health geographies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 7,
+  fig.height = 4.8
+)
+library(ggplot2)
+library(islandbrand)
+# Resolve the brand font first, as the other articles do. Unresolved, the
+# theme names BC Sans, and where it is not installed the PDF device that
+# R CMD check runs this code on stops with "invalid font type".
+islh_setup(format = "plots", quiet = TRUE)
+```
+
+The two packages divide mapping work by responsibility. `islandepi` retrieves
+and standardizes population and health-geography data. `islandbrand` controls
+the visual presentation of the finished map.
+
+## See the map functions work
+
+This first example uses four simple polygons created in the vignette. It does
+not contact the BC Data Catalogue, so the website can display a real map while
+remaining reproducible.
+
+```{r map-example-data}
+demo_map <- data.frame(
+  geography_name = c("North", "Central", "West", "South"),
+  population = c(12000, 34000, 18000, 52000),
+  wkt = c(
+    "POLYGON ((0 1, 1 1, 1 2, 0 2, 0 1))",
+    "POLYGON ((1 1, 2 1, 2 2, 1 2, 1 1))",
+    "POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))",
+    "POLYGON ((1 0, 2 0, 2 1, 1 1, 1 0))"
+  )
+)
+demo_map <- sf::st_as_sf(demo_map, wkt = "wkt", crs = 3005)
+demo_map[c("geography_name", "population")]
+```
+
+```{r map-example, fig.alt="Four-area demonstration choropleth, with the southern area darkest because it has the largest illustrative population."}
+ggplot(demo_map, aes(fill = population)) +
+  geom_sf(colour = islh_hex("grey", 80), linewidth = 0.4) +
+  scale_fill_islh_b(
+    n.breaks = 4
+  ) +
+  coord_islh_map() +
+  labs(
+    title = "Population by area",
+    subtitle = "Demonstration geometry and values",
+    fill = "Population",
+    caption = islh_caption(
+      source = "Simulated",
+      extracted = "2026-09-04"
+    )
+  ) +
+  theme_islh_map()
+```
+
+The same three presentation functions work with downloaded LHA, HSDA, CHSA or
+health-authority boundaries. The next section replaces `demo_map` with real
+catalogue data.
+
+## Retrieve and join the data
+
+The following example requests total population and LHA boundaries for Island
+Health. It is shown but not run here, because the catalogue can be unavailable
+even when both packages are working correctly.
+
+```{r retrieve, eval=FALSE}
+library(dplyr)
+library(ggplot2)
+library(islandepi)
+library(islandbrand)
+
+population_extract <- islh_bc_population(
+  geography = "lha",
+  years = 2025,
+  sex = "T"
+)
+
+population <- population_extract |>
+  summarise(
+    population = sum(population),
+    .by = c(geography, geography_code, year, estimate_type)
+  )
+
+boundaries <- islh_bc_geography("lha")
+
+map_data <- left_join(
+  boundaries,
+  population,
+  by = join_by(geography, geography_code),
+  relationship = "one-to-one",
+  na_matches = "never"
+)
+
+if (anyNA(map_data$population)) {
+  stop("One or more Island Health boundaries did not match population data.")
+}
+```
+
+The population resource covers all of BC, while the default boundary object
+contains only Island Health. Extra provincial population rows are expected to
+be discarded. The one-to-one relationship rejects duplicate codes, and the row
+check catches any Island Health boundary without a population match.
+
+`islandbrand` ships the result of that join for 2025, simplified for display, as
+`islh_example_lha()`. The rest of this article draws from it, so every map
+below is real:
+
+```{r example-lha}
+map_data <- islh_example_lha()
+map_data
+```
+
+## Clip the boundaries to land
+
+The catalogue's LHA boundaries already follow the coastline. Other layers, such
+as census or custom boundaries, often extend over water, and drawn unclipped
+Island Health becomes a blob across the Salish Sea. Clip those to a land layer
+first, then simplify. This needs a land layer of your own, so it is not run
+here:
+
+```{r clip, eval=FALSE}
+map_data <- map_data |>
+  sf::st_intersection(bc_land) |>
+  rmapshaper::ms_simplify(keep = 0.05, keep_shapes = TRUE)
+```
+
+Use `rmapshaper::ms_simplify()` rather than `sf::st_simplify()`. It preserves
+shared borders, so adjacent areas do not end up with slivers between them, and
+`keep_shapes = TRUE` keeps the small islands. Neither package is a dependency
+of `islandbrand`; install them in the analysis project.
+
+## Draw the choropleth
+
+Three functions carry the presentation:
+
+* `theme_islh_map()` starts from `ggplot2::theme_void()` and adds the brand
+  text hierarchy, so nothing but the data draws.
+* `coord_islh_map()` locks the map to BC Albers (EPSG:3005) and removes the
+  graticule.
+* `scale_fill_islh_b()` places a continuous value into branded colour steps.
+
+```{r choropleth, fig.alt="Choropleth of Island Health's 14 local health areas by 2025 population. Greater Victoria is in the darkest band; Vancouver Island West and Vancouver Island North are in the lightest."}
+base_map <- ggplot(map_data, aes(fill = population)) +
+  geom_sf(colour = islh_hex("grey", 80), linewidth = 0.25) +
+  scale_fill_islh_b(breaks = c(25000, 50000, 100000, 200000)) +
+  coord_islh_map() +
+  labs(
+    title = "Population by local health area",
+    subtitle = "Island Health, 2025 estimates",
+    fill = "Population",
+    caption = islh_caption(
+      source = "BC Stats and BC Data Catalogue",
+      extracted = "2026-09-24",
+      boundary = "Local health area boundaries, simplified for display",
+      width = 60
+    )
+  ) +
+  theme_islh_map()
+
+base_map
+```
+
+Population is skewed: Greater Victoria has more than a hundred times the
+people of Vancouver Island West. Breaks that double (25,000, 50,000, 100,000,
+200,000) keep the small areas from falling into one band.
+
+Always set the projection. Latitude and longitude (EPSG:4326) stretches
+Vancouver Island sideways and misrepresents how large each area is. BC Albers
+is what the provincial layers already use.
+
+The legend abbreviates large counts, so `25000` prints as `25K`. A bottom
+legend has little room between breaks, and full comma-separated numbers
+overlap once a map has more than three or four bins. Pass
+`labels = scales::label_comma()` when a figure needs exact numbers, along with
+`key_width = 16` to lengthen the bar.
+
+For a categorical map, use `scale_fill_islh()` instead. A map should retain a
+text label or table alternative when colour is the only visual distinction.
+
+## Put the legend in the empty corner
+
+Island Health runs northwest to southeast, which leaves an empty corner at the
+top right of a full-Island map, over the mainland the map does not draw.
+`coord_sf()` fixes the aspect ratio, so a wider figure cannot stretch the map
+to fill the space a bottom legend takes. Moving the legend inside the panel
+gives the map roughly a fifth more room:
+
+```{r legend-inside, fig.alt="The same population map with its legend placed in the empty top-right corner, above the east coast of Vancouver Island."}
+base_map + theme_islh_map(legend = "inside")
+```
+
+Adjust `legend_inside` when the map shows only part of the Island. It takes
+fractions of the panel, measured from the bottom left, for the legend's
+bottom-left corner.
+
+## Map rates, and classify on purpose
+
+Map age-standardized rates rather than counts, and name the standard
+population in the caption. A count map of local health areas mostly shows
+where people live.
+
+Choose the bin breaks deliberately. `classInt::classIntervals()` offers
+quantile, Jenks and equal-interval methods; quantile suits comparisons between
+areas, equal interval suits the same indicator across time. Then hard-code the
+breaks when a report maps the same indicator more than once.
+
+The cases here are simulated at about 90 per 100,000, so the map shows the
+method, not a real pattern:
+
+```{r rate-map, fig.alt="Choropleth of simulated crude rates per 100,000 by local health area, in four fixed bands."}
+set.seed(2026)
+map_data$cases <- stats::rpois(nrow(map_data), map_data$population * 90 / 1e5)
+map_data$rate <- map_data$cases / map_data$population * 1e5
+
+ggplot(map_data, aes(fill = rate)) +
+  geom_sf(colour = islh_hex("grey", 80), linewidth = 0.25) +
+  scale_fill_islh_b(breaks = c(80, 90, 100)) +
+  coord_islh_map() +
+  labs(
+    title = "Crude rate by local health area",
+    subtitle = "Per 100,000; simulated cases",
+    fill = "Rate per 100,000"
+  ) +
+  theme_islh_map(legend = "inside")
+```
+
+Bins recalculated from each year's data make an unchanged pattern look like a
+change.
+
+Five to seven bins is the ceiling. Beyond that nobody can match a swatch back
+to the map.
+
+## Keep suppressed, zero and missing apart
+
+Suppressed, zero and no data are three different statements and must read as
+three different things.
+
+`scale_fill_islh_b()` fills areas with no data in a grey lighter than every
+bin, so a greyscale print still separates them from the lowest band. Draw
+suppressed areas as their own layer with their own key:
+
+```{r suppressed-map, eval=requireNamespace("ggnewscale", quietly = TRUE), fig.alt="The simulated rate map with Vancouver Island West, which had fewer than five cases, drawn in a separate grey with its own legend key labelled Suppressed."}
+suppressed <- map_data[map_data$cases < 5, ]
+released <- map_data[map_data$cases >= 5, ]
+
+ggplot(released, aes(fill = rate)) +
+  geom_sf(colour = islh_hex("grey", 80), linewidth = 0.25) +
+  scale_fill_islh_b(name = "Rate per 100,000", breaks = c(80, 90, 100)) +
+  ggnewscale::new_scale_fill() +
+  geom_sf(
+    data = suppressed,
+    aes(fill = "Suppressed"),
+    colour = islh_hex("grey", 60),
+    linewidth = 0.25
+  ) +
+  scale_fill_manual(
+    values = c(Suppressed = islh_hex("grey", 60)),
+    name = NULL
+  ) +
+  coord_islh_map() +
+  labs(
+    title = "Crude rate by local health area",
+    subtitle = "Per 100,000; counts under 5 suppressed"
+  ) +
+  theme_islh_map()
+```
+
+This example uses `ggnewscale` to give the suppression layer its own legend.
+For a hatch rather than a flat fill, `ggpattern::geom_sf_pattern()` does the
+same job. Give zero counts their own baseline tint through an explicit lowest
+break so a reader does not read zero cases as uncollected data.
+
+## Insets for the urban areas
+
+Vancouver Island North and West dominate the page while Greater Victoria, where
+most of the population lives, shrinks to a few small polygons. Build the dense
+areas as their own panels and combine them:
+
+```{r inset, eval=requireNamespace("patchwork", quietly = TRUE), fig.width=8, fig.alt="The population map beside an enlarged panel of Greater Victoria and the Saanich Peninsula."}
+victoria <- base_map +
+  coord_islh_map(xlim = c(1170000, 1215000), ylim = c(375000, 420000)) +
+  labs(title = NULL, subtitle = NULL, caption = NULL) +
+  theme_islh_map(legend = "none")
+
+patchwork::wrap_plots(base_map, victoria, widths = c(2, 1))
+```
+
+`patchwork::inset_element()` places the panel over the main map instead. Draw a
+rectangle on the overview showing the inset extent either way.
+
+If the report is about people rather than land, consider a tile map or a
+population cartogram; a choropleth of rural areas is mostly a map of geography.
+
+## Give each local health area its own colour
+
+Some figures compare areas rather than map a value: which LHA is which on a
+reference map, or a line for each LHA over time. `islh_areas()` gives each of
+the 14 LHAs a fixed colour, the same in every report, and
+`scale_fill_islh_area()` and `scale_colour_islh_area()` apply them.
+
+No palette makes 14 areas identifiable by colour alone, so the colours work in
+two levels:
+
+* The health service delivery area picks the colour family: Blue for South,
+  Cedar for Central and Thistle for North Vancouver Island. These are the
+  brand's low-signal families, meant for organizing content. Red, Green and
+  Orange keep their signal meanings.
+* The LHA picks the shade within the family. Neighbouring LHAs differ by at
+  least 20 values within an HSDA, and South and North never touch, so the
+  families that colour-blind readers confuse most never meet on a map.
+
+```{r lha-colours}
+islh_areas()
+```
+
+The brand standard allows more than two colour families only when colour
+carries meaning, and then never as the only cue. So label the areas. On a
+chart, one panel per HSDA holds 4 to 6 lines of one family, and a name at the
+end of each line does the work a legend would:
+
+```{r lha-lines, fig.height = 7, fig.alt = "Three panels, one per health service delivery area, each showing simulated weekly rates for its local health areas as lines in shades of one colour family, named at the right-hand end."}
+weeks <- seq(as.Date("2026-01-04"), by = "week", length.out = 10)
+areas <- islh_areas()
+rates <- expand.grid(week = weeks, code = areas$code, stringsAsFactors = FALSE)
+rates <- merge(rates, areas[c("code", "name", "hsda")])
+rates$hsda <- factor(rates$hsda, levels = unique(areas$hsda))
+level <- 8 * as.numeric(substr(rates$code, 3, 3))
+rates$rate <- 10 + level + 6 * sin(as.numeric(rates$week - min(weeks)) / 20)
+last_week <- rates[rates$week == max(weeks), ]
+
+ggplot(rates, aes(week, rate, colour = name)) +
+  geom_line(linewidth = 0.9) +
+  geom_text(
+    data = last_week,
+    aes(label = name),
+    colour = islh_hex("grey", 15),
+    hjust = 0,
+    nudge_x = 2,
+    size = 3.8
+  ) +
+  facet_wrap(vars(hsda), ncol = 1) +
+  scale_x_date(expand = expansion(mult = c(0.02, 0.45))) +
+  scale_colour_islh_area(guide = "none") +
+  labs(
+    title = "Weekly rate by local health area",
+    subtitle = "Simulated values",
+    x = NULL,
+    y = "Rate per 100,000"
+  ) +
+  theme_islh()
+```
+
+Label text sits beside the line in dark grey, not in the line's colour: small
+text needs 70 values of contrast with the page, which the lighter shades do
+not have.
+
+On a map, `islh_area_labels()` writes each area's code without overlaps.
+Eight areas are large enough to hold their code, which sits inside in the
+area's `label_colour`: white or Grey 10, whichever the fill needs. The six
+small South and Central Island areas are labelled in a column over the Strait
+of Georgia, each joined to its area by a thin line, so no code crosses a
+border:
+
+```{r lha-map, fig.height=6, fig.alt="Map of Island Health's 14 local health areas, South Island in shades of blue, Central Island in shades of cedar and North Island in shades of thistle. Eight areas carry their code inside; the six small southern and central areas are labelled in a column to the east, each joined to its area by a thin line."}
+lha <- merge(
+  islh_example_lha(),
+  islh_areas(),
+  by.x = "geography_code",
+  by.y = "code"
+)
+
+ggplot(lha) +
+  geom_sf(aes(fill = name), colour = "white", linewidth = 0.3) +
+  islh_area_labels() +
+  scale_fill_islh_area(name = NULL) +
+  coord_islh_map() +
+  labs(title = "Island Health local health areas") +
+  theme_islh_map(legend = "none")
+```
+
+The label positions are fixed for the whole Island. On an inset or a map of
+part of it, label the areas yourself.
+
+The scales match the official names or the three-digit codes, so data from
+`islh_bc_geography()` works as it comes. A value that matches no LHA, such as
+a misspelled name, is drawn grey with a warning naming it.
+`scale_fill_islh_area("hsda")` does the same for the three HSDAs, in each
+family's representative colour.
+
+## Colour and contrast
+
+The map palette is a single-hue blue ramp whose steps fall about ten points of
+CIE lightness apart. Single hue plus even lightness steps is what keeps a ramp
+readable in greyscale and for colour-blind readers, so the brand colours do not
+need replacing with Viridis here. Check any palette you build yourself with
+`colorspace::specplot()`, view the finished map through `colorspace::deutan()`,
+and print it in greyscale once. Internal readers print.
+
+Use a diverging scale only when the map compares against a baseline, such as a
+standardized ratio against the Island Health average. "Where is this worse than
+expected" is usually the question, and a ratio answers it more directly than a
+rate.
+
+## Alt text
+
+Every map chunk needs `fig-alt` in Quarto. Describe what the map shows, not
+that it is a map: the geography, the indicator, and the pattern a reader would
+see.
+
+````
+```r
+#| label: fig-lha-rate
+#| fig-alt: >
+#|   Choropleth of Island Health local health areas showing influenza
+#|   hospitalization rates. Rates are highest in the north Island and
+#|   lowest in Greater Victoria.
+```
+````
+
+## Reproducibility
+
+Capture `attr(population_extract, "bcdata_source")` and the corresponding
+attribute on `boundaries` before transforming them. Save a dated extract in
+the analysis project when a report must reproduce the exact population or
+boundary version used for publication.

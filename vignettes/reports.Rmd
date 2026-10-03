@@ -1,0 +1,284 @@
+---
+title: "Writing reports"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Writing reports}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 7,
+  fig.height = 4
+)
+library(islandbrand)
+islh_setup(format = "html", quiet = TRUE)
+```
+
+## Start a project
+
+```{r create-project, message=TRUE}
+project <- file.path(tempdir(), "flu-season-2026")
+islandbrand::islh_create_report(project, format = "docx")
+```
+
+This article writes to a temporary folder so it can run anywhere; in practice,
+give the path where the project should live. The project holds:
+
+```{r project-files}
+list.files(project, recursive = TRUE)
+```
+
+That is a Quarto project that renders as it stands. Open the `.Rproj`
+file, run `islh_install_deps("docx")` once on that machine, then open
+`report.qmd` and click **Render**. Replace the example data with your own.
+
+`format` takes `"html"`, `"docx"` or `"both"`. With `"both"`, the report
+chooses its table engine at render time, so one file produces either output.
+
+## Add the format to a project you already have
+
+```{r add-format, message=TRUE}
+existing <- file.path(tempdir(), "respiratory-summary")
+dir.create(existing)
+
+islandbrand::islh_use_quarto(existing)
+islandbrand::islh_use_brand(existing)
+```
+
+Run from inside your project, both calls need no argument.
+
+The first copies the Island Health Quarto extension into `_extensions/`; the
+second copies `_brand.yml` alongside it. Quarto only looks for extensions
+inside the project directory, which is why these are copies rather than
+references into your R library.
+
+Then name the format:
+
+```yaml
+---
+title: "Respiratory season summary"
+format: islh-report-docx    # or islh-report-html
+---
+```
+
+## Keeping a project up to date
+
+Because those files are copies, they age. A fix to the Word reference document
+reaches your report only when the copy in your project is replaced. Re-copying
+blindly is not the answer either, since people edit `_brand.yml` for a
+program's own colours and lose that work without warning.
+
+`islh_check_project()` reports where a project stands. It reads only. To show
+what it finds, suppose someone added their program's colour to `_brand.yml` and
+deleted one of the logos:
+
+```{r edit-project}
+cat("# Program accent colour added locally\n",
+    file = file.path(project, "_brand.yml"), append = TRUE)
+file.remove(file.path(project, "logos", "islh-logo-stacked-white.svg"))
+```
+
+```{r check-project, message=TRUE}
+islandbrand::islh_check_project(project)
+```
+
+Each file is up to date, out of date, missing, or edited here. A project
+created by `islh_create_report()` records which version of each file it
+installed, in `_islh-manifest.csv`, and that record is what separates a file
+that is merely old from one you have changed. Commit it with the rest of the
+project.
+
+`islh_update_project()` brings the out-of-date and missing files forward.
+Anything you have edited is left alone, and whatever it replaces is copied
+into a timestamped folder under `_islh-backup` first.
+
+```{r update-project, message=TRUE}
+# See what would change without changing anything.
+islandbrand::islh_update_project(project, dry_run = TRUE)
+
+islandbrand::islh_update_project(project)
+```
+
+The missing logo is back, and the edited `_brand.yml` is untouched.
+
+If you meant to discard your own edits, `force = TRUE` replaces those files
+too. The backup is what makes that recoverable.
+
+A project scaffolded before this feature existed has no manifest, so a file
+that differs from the installed version is reported as unverifiable rather than
+guessed at, and is left alone until you replace it with `force = TRUE`.
+
+## The setup chunk
+
+Every Island Health report starts the same way:
+
+````
+```r
+#| label: setup
+#| include: false
+library(islandbrand)
+islh_setup()
+```
+````
+
+## Figures
+
+Give every figure a caption and alt text. Alt text is what a screen-reader
+user gets instead of the picture, so describe what the figure *shows*, not
+that it is a bar chart:
+
+````
+```{r}
+#| label: fig-encounters
+#| fig-cap: "Encounters by program"
+#| fig-alt: "Primary care had the most encounters at 326, then mental health
+#|   at 184, then public health at 79."
+#| fig-width: 6
+#| fig-height: 3.2
+```
+````
+
+Reference it in prose with `@fig-encounters` so the numbering stays right when
+you move things around.
+
+Here is the complete figure code with package data. This chunk is evaluated
+when the website is built, so the figure below is the actual result.
+
+```{r report-figure, fig.alt="Bar chart of example program encounters, with Primary care highest."}
+library(ggplot2)
+
+report_data <- islh_example_data()
+
+ggplot(report_data, aes(program, encounters, fill = program)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_islh() +
+  scale_y_islh_count() +
+  labs(
+    title = "Encounters by program",
+    subtitle = "Illustrative report output",
+    x = NULL,
+    y = "Encounters"
+  )
+```
+
+Tables use the same data. Use `islh_gt()` in HTML:
+
+```{r report-table}
+islh_gt(
+  report_data,
+  title = "Program activity",
+  source_note = "Source: simulated package data."
+)
+```
+
+In a dual-format report, select the table engine from the output format:
+
+```{r dual-format-table}
+if (knitr::is_html_output()) {
+  islh_gt(report_data)
+} else {
+  islh_flextable(report_data, caption = "Program activity")
+}
+```
+
+## Grouped tables
+
+When rows fall under headings, such as sites under their health service
+delivery area, name the grouping column with `groupname_col`. In HTML,
+`rowname_col` also turns a column into row labels, set apart by a thin rule
+and keeping its name as a header:
+
+```{r grouped-table}
+sites <- data.frame(
+  HSDA = c("South", "South", "Central", "Central", "North"),
+  Site = c(
+    "Rock Bay Landing (Victoria)", "The Harbour (Victoria)",
+    "Cowichan (Duncan)", "Port Alberni", "Comox Valley"
+  ),
+  Opened = c(
+    "February 1, 2017", "June 18, 2018", "September 11, 2017",
+    "May 1, 2017", "September 1, 2020"
+  ),
+  Hours = c(
+    "7 AM - 10 PM", "8 AM - 7 PM", "8 AM - 8 PM", "8 AM - 8 PM",
+    "9:30 AM - 3:30 PM"
+  )
+)
+
+islh_gt(
+  sites,
+  groupname_col = "HSDA",
+  rowname_col = "Site",
+  title = "Site details"
+)
+```
+
+`islh_flextable()` takes the same `groupname_col`, with the same shaded
+heading rows, so a dual-format report groups its table in both outputs. Word
+tables have no separate row-label column, so keep that column first. This is
+the Word version of the same table:
+
+```{r grouped-word, eval=requireNamespace("flextable", quietly = TRUE) && requireNamespace("officer", quietly = TRUE)}
+islh_flextable(sites, groupname_col = "HSDA")
+```
+
+In a dual-format report, choose between the two as in the previous section.
+
+## Word output
+
+The Word format uses a reference document built from the official Island
+Health letterhead: the logo header, the `Island Health / Page X of Y` footer,
+BC Sans, and headings in the letterhead's dark blue.
+
+Two things to know:
+
+- The table of contents renders empty. Word populates it as a field the first
+  time the document is opened. That is Word's behaviour, not a fault in the
+  template.
+- Word locks a file it has open. Close `report.docx` before re-rendering, or
+  the render fails on a permission error.
+
+## Troubleshooting
+
+**BC Sans is not being used.** It is not shipped with the package, so it has to
+be installed on your machine — once, from
+[bcgov/bc-sans](https://github.com/bcgov/bc-sans). `islh_font_family()` reports
+what was found. Without it, output falls back to another font; everything else
+still works.
+
+**Windows plot pane warns about the font database.** Base graphics devices on
+Windows resolve font names through R's own font database rather than through
+`systemfonts`. `islh_setup()` registers the family to stop the warnings. If
+they persist, set the RStudio graphics backend to AGG under
+*Tools > Global Options > General > Graphics*.
+
+**Figures vanish from the rendered document.** On Windows, a path longer than
+260 characters silently drops figures. Keep the project somewhere short, not
+several folders deep in a synced drive.
+
+**A package is missing or too old.** `islh_check()` names it and gives you the
+command. `islh_install_deps()` runs that command for you. Both use base R's
+`install.packages()` with `type = "binary"`, because Island Health laptops
+block installers that unpack with their own helper binary and have no compiler
+for a source build.
+
+## Before anything leaves your team
+
+Reports built this way are ordinary files with no access controls. Never put
+identifiable information in one, and suppress small cells before sharing:
+
+```r
+counts$cases <- islandepi::islh_suppress(counts$cases, threshold = 5)
+```
+
+`islandepi::islh_suppress_table()` does a whole table, and its `complementary`
+argument
+handles the case where a visible total would let a reader recover a suppressed
+cell by subtraction. The threshold is yours to set — check the rule your
+release is governed by.
