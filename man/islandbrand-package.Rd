@@ -6,6 +6,8 @@
 \alias{islandbrand-package}
 \title{islandbrand: Island Health Branding for R Figures, Tables and Reports}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Applies Island Health brand colours, typography and layout to ggplot2 figures, including epidemic curves and surveillance graphics, flextable and gt tables, and Quarto HTML and Word reports. Includes project scaffolding for reproducible reports used by the PHASE team.
 }
 \seealso{

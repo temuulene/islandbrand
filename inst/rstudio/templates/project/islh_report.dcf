@@ -3,6 +3,7 @@ Title: Island Health report
 Subtitle: A branded Quarto report
 Caption: Creates a Quarto project that renders with Island Health branding.
 OpenFiles: report.qmd
+Icon: islh_report.png
 
 Parameter: format
 Widget: SelectInput

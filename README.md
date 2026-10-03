@@ -1,4 +1,4 @@
-# islandbrand
+# islandbrand <a href="https://temuulene.github.io/islandbrand/"><img src="man/figures/logo.png" align="right" height="139" alt="islandbrand website" /></a>
 
 Island Health branding for R figures, tables and Quarto reports.
 
