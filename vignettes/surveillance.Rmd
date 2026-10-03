@@ -133,6 +133,112 @@ islh_epi_curve(
 The function draws the reference but does not interpret it. Add an annotation
 or signal layer only after applying the surveillance program's approved rule.
 
+## Showing uncertainty
+
+A rate or percentage in a figure needs its confidence interval as much as one
+in a table. Without it, a reader cannot tell a rate based on 3 cases from one
+based on 300. The islandepi article
+[Why every estimate needs an interval](https://temuulene.github.io/islandepi/articles/intervals.html)
+works through why with examples. This section shows how to draw intervals in
+the Island Health style.
+
+Calculate the rates and their intervals first.
+`islandepi::islh_crude_rate()`, `islandepi::islh_proportion()` and
+`islandepi::islh_dsr()` all return `lower` and `upper` columns beside the
+estimate:
+
+```{r interval-workflow, eval=FALSE}
+area_rates <- cbind(
+  areas["lha"],
+  islandepi::islh_crude_rate(areas$cases, areas$population)
+)
+```
+
+### Areas or groups
+
+Draw each area as a dot with a line through it for the interval. Sort areas by
+name or geography, not by rate: sorting by rate puts the smallest, least certain
+areas at both ends. A dashed line for the overall rate gives readers a
+reference point.
+
+```{r area-intervals, fig.height=4.5, fig.alt="Dot-and-whisker chart of annual rates per 100,000 for eight local health areas in alphabetical order, with a dashed line at the Island Health rate of 49.5. Vancouver Island West has the highest rate, 134, but its interval runs from 28 to 392. Cowichan Valley West has the lowest, 14, with an interval from 0.3 to 76. Every interval crosses the dashed line."}
+area_rates <- data.frame(
+  lha = c(
+    "Alberni/Clayoquot", "Comox Valley", "Cowichan Valley North",
+    "Cowichan Valley South", "Cowichan Valley West", "Greater Campbell River",
+    "Oceanside", "Vancouver Island West"
+  ),
+  rate = c(30.3, 44.9, 76.0, 60.5, 13.6, 52.6, 45.6, 134.3),
+  lower = c(15.1, 31.5, 44.2, 43.2, 0.3, 34.4, 29.5, 27.7),
+  upper = c(54.2, 62.2, 121.7, 82.4, 76.0, 77.1, 67.3, 392.4)
+)
+area_rates$lha <- factor(area_rates$lha, levels = rev(area_rates$lha))
+
+ggplot2::ggplot(area_rates, ggplot2::aes(x = rate, y = lha)) +
+  ggplot2::geom_vline(
+    xintercept = 49.5,
+    linetype = "dashed",
+    colour = islh_hex("grey", 50)
+  ) +
+  ggplot2::geom_pointrange(
+    ggplot2::aes(xmin = lower, xmax = upper),
+    colour = islh_brand("primary")
+  ) +
+  ggplot2::labs(
+    x = "Cases per 100,000",
+    y = NULL,
+    title = "Annual rate by local health area",
+    subtitle = "Dashed line: Island Health overall",
+    caption = "Lines show 95% confidence intervals. Illustrative data."
+  )
+```
+
+Say what the lines show, in the caption or the axis title. Avoid bar charts of
+rates without intervals: every bar looks equally certain. If a bar chart is
+needed, add `ggplot2::geom_errorbar()` with `width = 0.2`.
+
+### Trends over time
+
+Draw the interval as a shaded band behind the line. The band widens where
+counts are low, which is exactly where month-to-month changes mean least.
+
+```{r trend-intervals, fig.alt="Line chart of a monthly rate per 100,000 from April 2025 to March 2026 with a pale blue 95% confidence band. The rate falls from about 11 in April to about 4 in September, then rises to a peak of about 22 in February. The band is wide throughout. The summer bands overlap each other, while the February band sits entirely above the summer estimates."}
+monthly <- data.frame(
+  month = seq(as.Date("2025-04-01"), by = "month", length.out = 12),
+  rate = c(11.2, 8.7, 7.5, 6.2, 5.0, 3.7, 5.0, 7.5, 11.2, 16.2, 22.5, 18.7),
+  lower = c(5.1, 3.5, 2.7, 2.0, 1.4, 0.8, 1.4, 2.7, 5.1, 8.6, 13.3, 10.5),
+  upper = c(21.3, 18.0, 16.3, 14.6, 12.8, 10.9, 12.8, 16.3, 21.3, 27.8, 35.5, 30.9)
+)
+
+ggplot2::ggplot(monthly, ggplot2::aes(x = month, y = rate)) +
+  ggplot2::geom_ribbon(
+    ggplot2::aes(ymin = lower, ymax = upper),
+    fill = islh_hex("blue", 85)
+  ) +
+  ggplot2::geom_line(colour = islh_brand("primary"), linewidth = 1) +
+  ggplot2::geom_point(colour = islh_brand("primary")) +
+  ggplot2::scale_x_date(date_breaks = "2 months", date_labels = "%b\n%Y") +
+  ggplot2::expand_limits(y = 0) +
+  ggplot2::labs(
+    x = NULL,
+    y = "Cases per 100,000",
+    title = "Monthly rate in one local health area",
+    caption = "Shaded band: 95% confidence interval. Illustrative data."
+  )
+```
+
+The summer rates, 4 to 8 per 100,000, each rest on 3 to 6 cases, so their
+bands are wide and overlap one another: the dip from June to September is not
+clear evidence of a fall. The winter rise is clearer. By February the whole
+band sits above every summer estimate.
+
+### Tables
+
+Put the interval beside the estimate, as `30.3 (15.1 to 54.2)`, and name the
+method and confidence level in the table notes. Use "to" rather than a hyphen,
+which reads like a minus sign. Format the columns, then pass the data frame to
+`islh_gt()` or `islh_flextable()`.
+
 ## Facet by geography
 
 ```{r faceted-curve, fig.alt="Two small-multiple epidemic curves for North and South regions."}

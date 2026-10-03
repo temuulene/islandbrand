@@ -16,7 +16,8 @@ Documentation: <https://temuulene.github.io/islandbrand/>
 New users should start with
 [Getting started with islandbrand](https://temuulene.github.io/islandbrand/articles/islandbrand.html).
 For routine surveillance plots, see the evaluated
-[surveillance figures guide](https://temuulene.github.io/islandbrand/articles/surveillance.html).
+[surveillance figures guide](https://temuulene.github.io/islandbrand/articles/surveillance.html),
+which also shows how to draw confidence intervals.
 
 ## Installing
 
