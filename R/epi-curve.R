@@ -17,7 +17,11 @@
 #' @param position Stack or dodge grouped bars. Case tiles require stacking.
 #' @param labels Show no labels or total counts above each period.
 #' @param reference Optional data frame containing a date column and one or more
-#'   of `lower_limit`, `upper_limit` and `reference_mean`.
+#'   of `lower_limit`, `upper_limit` and `reference_mean`, with one row per
+#'   date. When it also contains the `facet` column it needs one row per date
+#'   and facet, and each panel shows its own reference. Without the facet
+#'   column, the same reference is drawn in every panel. Extra rows, such as a
+#'   reference for each fill group, are an error.
 #' @param reference_date Date column in `reference`. Defaults to the name used
 #'   by `date` when that column is present.
 #' @param lower,upper,reference_mean Column names used for the reference ribbon
@@ -25,6 +29,10 @@
 #' @param show_year_lines Draw a separator at the beginning of each new year.
 #' @param bar_width Width in days, measured from each period's start. When
 #'   `NULL`, the function uses nine tenths of the shortest distance between
+#'   periods. With a single period it uses nine tenths of the period's length
+#'   when `data` comes from `islandepi::islh_count_events()`, which records the
+#'   interval, and 0.9 days otherwise. Start dates alone cannot show a missing
+#'   period or months of different lengths, so set `bar_width` for irregular
 #'   periods.
 #' @param date_breaks,date_labels Values passed to `ggplot2::scale_x_date()`.
 #'   Useful defaults are selected when omitted.
@@ -61,6 +69,18 @@
 #' cannot infer. Use `aggregate = TRUE` when the rows really are separate
 #' counts of the same period that should be added together. Columns outside the
 #' date, fill and facet keep the first row's value.
+#'
+#' Rows are grouped by the values themselves, so `"A.B"` with `"C"` and `"A"`
+#' with `"B.C"` stay apart. A missing fill or facet value is a group of its
+#' own: it is summed, stacked and labelled like any other value, and a missing
+#' facet gets its own panel.
+#'
+#' @section Zero counts:
+#'
+#' Keep rows with a count of zero. Both styles keep their periods on the date
+#' axis, their panels and their fill groups, so a quiet area is shown as quiet
+#' rather than left out. A period with no row at all is not drawn as zero:
+#' the function cannot tell an absent row from a period nobody reported on.
 #'
 #' @examples
 #' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
@@ -133,6 +153,7 @@ islh_epi_curve <- function(
     optional = TRUE
   )
 
+  interval <- attr(data, "islh_interval", exact = TRUE)
   plot_data <- as.data.frame(data)
   plot_data[[date_name]] <- .islh_plot_dates(plot_data[[date_name]], date_name)
   plot_data[[count_name]] <- .islh_plot_counts(
@@ -151,7 +172,7 @@ islh_epi_curve <- function(
   if (is.null(bar_width)) {
     unique_dates <- sort(unique(plot_data[[date_name]]))
     if (length(unique_dates) < 2L) {
-      bar_width <- 0.9
+      bar_width <- 0.9 * .islh_period_days(unique_dates, interval)
     } else {
       bar_width <- 0.9 * min(as.numeric(diff(unique_dates)))
     }
@@ -177,7 +198,9 @@ islh_epi_curve <- function(
 
   reference_layers <- .islh_plot_reference(
     reference = reference,
+    data = plot_data,
     data_date_name = date_name,
+    facet_name = facet_name,
     reference_date = reference_date,
     lower = lower,
     upper = upper,
@@ -243,6 +266,29 @@ islh_epi_curve <- function(
     if (position != "stack") {
       .islh_abort("{.code style = \"cases\"} only supports stacked groups.")
     }
+    # Tiles are drawn only for cases, so a period or panel with none would
+    # vanish from the figure. Zero is a result: this blank layer keeps every
+    # period on the date axis, every panel and every fill group in the legend,
+    # as the bars do.
+    skeleton <- plot_data
+    skeleton$.islh_xmin <- skeleton[[date_name]]
+    skeleton$.islh_xmax <- skeleton[[date_name]] + bar_width
+    skeleton_mapping <- if (is.null(fill_name)) {
+      ggplot2::aes(
+        xmin = .data$.islh_xmin,
+        xmax = .data$.islh_xmax,
+        y = .data[[count_name]]
+      )
+    } else {
+      ggplot2::aes(
+        xmin = .data$.islh_xmin,
+        xmax = .data$.islh_xmax,
+        y = .data[[count_name]],
+        fill = .data[[fill_name]]
+      )
+    }
+    plot <- plot +
+      ggplot2::geom_blank(data = skeleton, mapping = skeleton_mapping)
     case_data <- .islh_expand_cases(
       plot_data,
       date_name = date_name,
@@ -412,7 +458,8 @@ islh_epi_curve <- function(
   call = rlang::caller_env()
 ) {
   keys <- c(date_name, fill_name, facet_name)
-  repeated <- duplicated(data[keys])
+  ids <- .islh_group_ids(data, keys)
+  repeated <- duplicated(ids)
   if (!any(repeated)) {
     return(data)
   }
@@ -432,18 +479,8 @@ islh_epi_curve <- function(
     )
   }
 
-  key <- do.call(
-    interaction,
-    c(
-      lapply(data[keys], function(x) addNA(as.factor(x))),
-      list(drop = TRUE, lex.order = TRUE)
-    )
-  )
-  totals <- tapply(data[[count_name]], key, sum)
-  first <- !duplicated(key)
-
-  out <- data[first, , drop = FALSE]
-  out[[count_name]] <- as.numeric(totals[as.character(key[first])])
+  out <- data[!repeated, , drop = FALSE]
+  out[[count_name]] <- .islh_group_sums(data[[count_name]], ids)
   rownames(out) <- NULL
   out
 }
@@ -503,7 +540,9 @@ islh_epi_curve <- function(
 
 .islh_plot_reference <- function(
   reference,
+  data,
   data_date_name,
+  facet_name,
   reference_date,
   lower,
   upper,
@@ -547,6 +586,13 @@ islh_epi_curve <- function(
   reference[[reference_date]] <- .islh_plot_dates(
     reference[[reference_date]],
     "reference_date",
+    call = call
+  )
+  .islh_check_reference_grain(
+    reference,
+    data,
+    reference_date = reference_date,
+    facet_name = facet_name,
     call = call
   )
   # Reference values describe a whole period, so they sit mid-bar.
@@ -642,6 +688,80 @@ islh_epi_curve <- function(
   list(ribbon = ribbon, line = line)
 }
 
+# One reference row per period, or per period and panel.
+#
+# The band and the line each join their rows in date order. A second row for
+# the same date, such as a reference for each fill group, would be joined into
+# the same line, zigzagging between the series with nothing to say so. A
+# reference without the facet column is drawn in every panel.
+.islh_check_reference_grain <- function(
+  reference,
+  data,
+  reference_date,
+  facet_name,
+  call = rlang::caller_env()
+) {
+  by_facet <- !is.null(facet_name) && facet_name %in% names(reference)
+  keys <- c(reference_date, if (by_facet) facet_name)
+  ids <- .islh_group_ids(reference, keys)
+  if (anyDuplicated(ids)) {
+    n <- sum(duplicated(ids))
+    grain <- if (by_facet) "date and facet" else "date"
+    .islh_abort(
+      c(
+        "{.arg reference} has more than one row for the same {grain}.",
+        x = "Found {n} repeated combination{?s} of {.field {keys}}.",
+        i = "The reference draws one band and one line per panel. Keep one
+             row per {grain}, for example by filtering it to the series it
+             describes."
+      ),
+      call = call
+    )
+  }
+  if (by_facet) {
+    panels <- reference[[facet_name]]
+    extra <- unique(panels[is.na(match(panels, data[[facet_name]]))])
+    if (length(extra) > 0L) {
+      extra <- as.character(extra)
+      .islh_abort(
+        c(
+          "{.arg reference} has {.field {facet_name}} values that
+           {.arg data} does not.",
+          x = "Not in {.arg data}: {.val {extra}}.",
+          i = "Each would add a panel with no counts. Check the spelling, or
+               add rows with a count of zero to {.arg data}."
+        ),
+        call = call
+      )
+    }
+  }
+  invisible(reference)
+}
+
+# The length in days of the period starting on `start`, from the interval that
+# islandepi records on its counts. Without that record a single period's length
+# is unknown, and one day is used.
+.islh_period_days <- function(start, interval) {
+  units <- c(
+    day = "day",
+    week = "week",
+    isoweek = "week",
+    epiweek = "week",
+    month = "month",
+    quarter = "quarter",
+    year = "year"
+  )
+  if (
+    length(start) != 1L ||
+      !is.character(interval) ||
+      length(interval) != 1L ||
+      !interval %in% names(units)
+  ) {
+    return(1)
+  }
+  as.numeric(diff(seq(start, by = units[[interval]], length.out = 2L)))
+}
+
 .islh_expand_cases <- function(
   data,
   date_name,
@@ -670,20 +790,9 @@ islh_epi_curve <- function(
     data <- data[order(-level), , drop = FALSE]
   }
 
-  key_data <- data[date_name]
-  if (!is.null(facet_name)) {
-    key_data[[facet_name]] <- data[[facet_name]]
-  }
-  key <- do.call(
-    interaction,
-    c(
-      lapply(key_data, function(x) addNA(as.factor(x))),
-      list(drop = TRUE, lex.order = TRUE)
-    )
-  )
   offset <- stats::ave(
     data[[count_name]],
-    key,
+    .islh_group_ids(data, c(date_name, facet_name)),
     FUN = function(x) cumsum(x) - x
   )
   row_index <- rep(seq_len(nrow(data)), times = data[[count_name]])
@@ -702,12 +811,15 @@ islh_epi_curve <- function(
   expanded
 }
 
+# One total per period and panel. A missing facet value is a panel of its own,
+# so its total is kept rather than dropped as stats::aggregate() would.
 .islh_plot_totals <- function(data, date_name, count_name, facet_name) {
-  by <- list(.islh_date = data[[date_name]])
+  ids <- .islh_group_ids(data, c(date_name, facet_name))
+  first <- !duplicated(ids)
+  out <- data.frame(.islh_date = data[[date_name]][first])
   if (!is.null(facet_name)) {
-    by[[facet_name]] <- data[[facet_name]]
+    out[[facet_name]] <- data[[facet_name]][first]
   }
-  out <- stats::aggregate(data[[count_name]], by = by, FUN = sum)
-  names(out)[names(out) == "x"] <- ".islh_total"
+  out$.islh_total <- .islh_group_sums(data[[count_name]], ids)
   out
 }

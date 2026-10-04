@@ -51,7 +51,11 @@ outlined rectangle per case. Case tiles are intended for small outbreaks.}
 \item{labels}{Show no labels or total counts above each period.}
 
 \item{reference}{Optional data frame containing a date column and one or more
-of \code{lower_limit}, \code{upper_limit} and \code{reference_mean}.}
+of \code{lower_limit}, \code{upper_limit} and \code{reference_mean}, with one row per
+date. When it also contains the \code{facet} column it needs one row per date
+and facet, and each panel shows its own reference. Without the facet
+column, the same reference is drawn in every panel. Extra rows, such as a
+reference for each fill group, are an error.}
 
 \item{reference_date}{Date column in \code{reference}. Defaults to the name used
 by \code{date} when that column is present.}
@@ -63,6 +67,10 @@ and line. Missing optional columns are ignored.}
 
 \item{bar_width}{Width in days, measured from each period's start. When
 \code{NULL}, the function uses nine tenths of the shortest distance between
+periods. With a single period it uses nine tenths of the period's length
+when \code{data} comes from \code{islandepi::islh_count_events()}, which records the
+interval, and 0.9 days otherwise. Start dates alone cannot show a missing
+period or months of different lengths, so set \code{bar_width} for irregular
 periods.}
 
 \item{date_breaks, date_labels}{Values passed to \code{ggplot2::scale_x_date()}.
@@ -115,6 +123,20 @@ period and group, and fills in the periods with no events, which a plot
 cannot infer. Use \code{aggregate = TRUE} when the rows really are separate
 counts of the same period that should be added together. Columns outside the
 date, fill and facet keep the first row's value.
+
+Rows are grouped by the values themselves, so \code{"A.B"} with \code{"C"} and \code{"A"}
+with \code{"B.C"} stay apart. A missing fill or facet value is a group of its
+own: it is summed, stacked and labelled like any other value, and a missing
+facet gets its own panel.
+}
+
+\section{Zero counts}{
+
+
+Keep rows with a count of zero. Both styles keep their periods on the date
+axis, their panels and their fill groups, so a quiet area is shown as quiet
+rather than left out. A period with no row at all is not drawn as zero:
+the function cannot tell an absent row from a period nobody reported on.
 }
 
 \examples{

@@ -1,3 +1,9 @@
+# The case style adds a blank layer before its tiles, so find them by geom.
+tile_index <- function(plot) {
+  which(vapply(plot$layers, function(l) inherits(l$geom, "GeomTile"), TRUE))
+}
+tile_data <- function(plot) plot$layers[[tile_index(plot)]]$data
+
 test_that("epi curve returns a branded ggplot", {
   data <- data.frame(
     date = as.Date("2026-01-01") + 0:4,
@@ -39,8 +45,8 @@ test_that("case style expands counts into individual rectangles", {
   )
   plot <- islh_epi_curve(data, date, count, fill = source, style = "cases")
   expect_s3_class(plot, "ggplot")
-  expect_equal(nrow(plot$layers[[1]]$data), 6)
-  expect_equal(sort(plot$layers[[1]]$data$.islh_case_y[1:5]), seq(0.5, 4.5, 1))
+  expect_equal(nrow(tile_data(plot)), 6)
+  expect_equal(sort(tile_data(plot)$.islh_case_y[1:5]), seq(0.5, 4.5, 1))
 })
 
 test_that("case style has a rendering guard", {
@@ -209,9 +215,8 @@ test_that("case tiles, labels and reference follow the bars", {
   )
   middle <- as.numeric(data$week) + 0.9 * 7 / 2
 
-  tiles <- ggplot2::ggplot_build(
-    islh_epi_curve(data, week, cases, style = "cases")
-  )$data[[1]]
+  tile_plot <- islh_epi_curve(data, week, cases, style = "cases")
+  tiles <- ggplot2::ggplot_build(tile_plot)$data[[tile_index(tile_plot)]]
   expect_equal(sort(unique(tiles$x)), middle)
 
   plot <- expect_only_font_warnings(
@@ -245,13 +250,13 @@ test_that("case tiles stack in the same order in every period", {
     source = c("A", "B", "B", "A"),
     count = c(1, 2, 2, 1)
   )
-  tiles <- islh_epi_curve(
+  tiles <- tile_data(islh_epi_curve(
     data,
     date,
     count,
     fill = source,
     style = "cases"
-  )$layers[[1]]$data
+  ))
 
   # First level on top, as geom_col() stacks bars: B fills the lower tiles.
   lowest <- tapply(tiles$.islh_case_y, tiles$source, min)
@@ -259,4 +264,199 @@ test_that("case tiles stack in the same order in every period", {
   expect_equal(lowest[["A"]], 2.5)
   per_date <- split(tiles[c("source", ".islh_case_y")], tiles$date)
   expect_equal(per_date[[1]], per_date[[2]], ignore_attr = TRUE)
+})
+
+test_that("aggregation keeps groups apart whatever their values contain", {
+  # Labels pasted with a dot made ("A.B", "C") and ("A", "B.C") one group.
+  data <- data.frame(
+    date = as.Date("2026-01-04"),
+    source = c("A.B", "A", "A.B"),
+    site = c("C", "B.C", "C"),
+    count = c(1, 10, 2)
+  )
+  plot <- islh_epi_curve(
+    data,
+    date,
+    count,
+    fill = source,
+    facet = site,
+    aggregate = TRUE
+  )
+  drawn <- plot$layers[[1]]$data
+  expect_equal(drawn$source, c("A.B", "A"))
+  expect_equal(drawn$site, c("C", "B.C"))
+  expect_equal(drawn$count, c(3, 10))
+
+  # Missing values are a group of their own, apart from the text "NA".
+  missing <- data.frame(
+    date = as.Date("2026-01-04"),
+    source = c(NA, "NA", NA),
+    count = c(1, 2, 4)
+  )
+  summed <- .islh_plot_grain(missing, "date", "count", "source", NULL, TRUE)
+  expect_equal(summed$source, c(NA, "NA"))
+  expect_equal(summed$count, c(5, 2))
+
+  # Factors keep their levels.
+  missing$source <- factor(missing$source, levels = c("NA", "Other"))
+  summed <- .islh_plot_grain(missing, "date", "count", "source", NULL, TRUE)
+  expect_equal(levels(summed$source), c("NA", "Other"))
+  expect_equal(summed$count, c(5, 2))
+})
+
+test_that("case tiles keep zero-count periods, panels and fill groups", {
+  data <- data.frame(
+    date = as.Date("2026-01-04") + c(0, 7, 14, 0, 7, 14),
+    count = c(0, 2, 0, 0, 0, 0),
+    site = rep(c("Active", "Quiet"), each = 3),
+    source = c("A", "A", "B", "B", "B", "B")
+  )
+  bars <- islh_epi_curve(data, date, count, fill = source, facet = site)
+  tiles <- islh_epi_curve(
+    data,
+    date,
+    count,
+    fill = source,
+    facet = site,
+    style = "cases"
+  )
+  built_bars <- ggplot2::ggplot_build(bars)
+  built_tiles <- ggplot2::ggplot_build(tiles)
+
+  # The quiet panel stays.
+  expect_equal(built_tiles$layout$layout$site, c("Active", "Quiet"))
+  expect_equal(built_tiles$layout$layout$site, built_bars$layout$layout$site)
+
+  # Leading and trailing zero weeks stay on the date axis.
+  range_of <- function(built) built$layout$panel_params[[1]]$x$continuous_range
+  expect_equal(range_of(built_tiles), range_of(built_bars))
+
+  # B has no cases at all, and still appears in the legend.
+  expect_equal(
+    built_tiles$plot$scales$get_scales("fill")$get_limits(),
+    c("A", "B")
+  )
+  expect_equal(nrow(tile_data(tiles)), 2L)
+})
+
+test_that("case tiles draw all-zero input without error", {
+  data <- data.frame(
+    date = as.Date("2026-01-04") + c(0, 7, 0, 7),
+    count = 0,
+    site = c("North", "North", "South", "South")
+  )
+  plot <- islh_epi_curve(data, date, count, facet = site, style = "cases")
+  built <- ggplot2::ggplot_build(plot)
+  expect_equal(built$layout$layout$site, c("North", "South"))
+  expect_equal(nrow(tile_data(plot)), 0L)
+
+  path <- withr::local_tempfile(fileext = ".png")
+  grDevices::png(path)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  expect_no_error(print(plot))
+
+  single <- islh_epi_curve(data[1:2, ], date, count, style = "cases")
+  expect_no_error(ggplot2::ggplot_build(single))
+})
+
+test_that("total labels keep a missing facet", {
+  data <- data.frame(
+    date = as.Date("2026-01-04"),
+    site = c("Known", NA),
+    count = c(2, 3)
+  )
+  plot <- expect_only_font_warnings(
+    islh_epi_curve(data, date, count, facet = site, labels = "total")
+  )
+  built <- ggplot2::ggplot_build(plot)
+  labels <- built$data[[2]]
+  expect_equal(nrow(built$layout$layout), 2L)
+  expect_equal(labels$label[order(labels$PANEL)], c(2, 3))
+
+  totals <- .islh_plot_totals(data, "date", "count", "site")
+  expect_equal(totals$site, c("Known", NA))
+  expect_equal(totals$.islh_total, c(2, 3))
+})
+
+test_that("a reference needs one row per date, or per date and facet", {
+  data <- data.frame(
+    date = as.Date("2026-01-04") + c(0, 7),
+    count = c(4, 5)
+  )
+  # A reference for each fill group would be joined into one zigzag line.
+  stratified <- data.frame(
+    date = rep(data$date, each = 2),
+    source = rep(c("A", "B"), 2),
+    reference_mean = c(1, 10, 2, 20)
+  )
+  expect_error(
+    islh_epi_curve(data, date, count, reference = stratified),
+    "more than one row for the same date",
+    class = "islh_error"
+  )
+
+  # Dates that are equal once read count as the same date.
+  as_text <- data.frame(
+    date = c("2026-01-04", "2026-01-04"),
+    reference_mean = c(1, 2)
+  )
+  as_text$date[2] <- format(as.Date("2026-01-04"))
+  expect_error(
+    islh_epi_curve(data, date, count, reference = as_text),
+    "more than one row"
+  )
+})
+
+test_that("a reference with the facet column has one row per panel", {
+  data <- data.frame(
+    date = rep(as.Date("2026-01-04") + c(0, 7), 2),
+    site = rep(c("North", "South"), each = 2),
+    count = c(4, 5, 1, 2)
+  )
+  by_site <- data.frame(
+    date = data$date,
+    site = data$site,
+    reference_mean = c(3, 4, 1, 1)
+  )
+  plot <- islh_epi_curve(data, date, count, facet = site, reference = by_site)
+  line <- ggplot2::ggplot_build(plot)$data[[1]]
+  expect_equal(as.integer(table(line$PANEL)), c(2L, 2L))
+
+  doubled <- rbind(by_site, by_site)
+  expect_error(
+    islh_epi_curve(data, date, count, facet = site, reference = doubled),
+    "same date and facet"
+  )
+
+  misspelt <- by_site
+  misspelt$site[3:4] <- "Sout"
+  expect_error(
+    islh_epi_curve(data, date, count, facet = site, reference = misspelt),
+    "Sout"
+  )
+
+  # Without the facet column, one reference is drawn in every panel.
+  shared <- data.frame(date = unique(data$date), reference_mean = c(2, 3))
+  plot <- islh_epi_curve(data, date, count, facet = site, reference = shared)
+  line <- ggplot2::ggplot_build(plot)$data[[1]]
+  expect_equal(as.integer(table(line$PANEL)), c(2L, 2L))
+})
+
+test_that("a single period uses the interval islandepi records", {
+  data <- data.frame(week = as.Date("2026-01-04"), cases = 3)
+  bar_width <- function(plot) {
+    built <- ggplot2::ggplot_build(plot)$data[[1]]
+    built$xmax - built$xmin
+  }
+  expect_equal(bar_width(islh_epi_curve(data, week, cases)), 0.9)
+
+  attr(data, "islh_interval") <- "week"
+  expect_equal(bar_width(islh_epi_curve(data, week, cases)), 0.9 * 7)
+
+  attr(data, "islh_interval") <- "month"
+  data$week <- as.Date("2026-02-01")
+  expect_equal(bar_width(islh_epi_curve(data, week, cases)), 0.9 * 28)
+
+  attr(data, "islh_interval") <- "fortnight"
+  expect_equal(bar_width(islh_epi_curve(data, week, cases)), 0.9)
 })
