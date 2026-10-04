@@ -38,6 +38,10 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           dependencies: ${{ matrix.config.deps == 'hard' && '"hard"' || '"all"' }}
+          # Deciding whether pandoc is needed resolves every Suggested
+          # package, and gtsummary needs R 4.2, so on R 4.1 the step fails
+          # before anything is installed. The hard floor needs no pandoc.
+          install-pandoc: ${{ matrix.config.deps == 'hard' && 'false' || 'auto' }}
           extra-packages: |
             any::remotes
             any::testthat
