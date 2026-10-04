@@ -79,6 +79,18 @@ until 3.5.0.
   helper that can abort takes `call = rlang::caller_env()` and passes it to
   `.islh_abort()`, so the error names the exported function the user called.
   A test checks this.
+- **Measure contrast; do not infer it from brand values.** Any colour pair
+  used for text needs 4.5:1, and a line or mark a reader needs to read a
+  figure needs 3:1 against what is behind it. Test the ratio with
+  `.islh_contrast_ratio()`, unrounded: Blue 50 on white is 4.4519:1 and
+  fails.
+- **Group by values, never by pasted labels.** `interaction()` and `paste()`
+  keys let `("A.B", "C")` and `("A", "B.C")` collide. Use
+  `.islh_group_ids()`, which also keeps a missing value apart from the text
+  `"NA"`.
+- **A failure must not leave work half done.** Check every target before
+  writing any, take backups before replacing anything, and restore the session
+  if setup fails part way.
 
 ## Style
 

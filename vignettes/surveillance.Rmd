@@ -62,8 +62,17 @@ islh_epi_curve(
 )
 ```
 
-The bar width is inferred from the distance between dates. Weekly observations
-therefore fill most of the week instead of rendering as one-day-wide bars.
+The bar width is inferred from the distance between dates: nine tenths of the
+shortest gap, so weekly bars fill most of the week. Start dates alone cannot
+say more than that:
+
+- With a single period there is no gap to measure. Counts from
+  `islandepi::islh_count_events()` record their interval, which sets the
+  width; other data gets 0.9 days.
+- Monthly bars are sized to the shortest month, 28 days, and a missing period
+  looks like a gap the data never had.
+
+For irregular periods, set `bar_width` in days yourself.
 
 Use `position = "dodge"` when the group comparison matters more than the total:
 
@@ -132,6 +141,28 @@ islh_epi_curve(
 
 The function draws the reference but does not interpret it. Add an annotation
 or signal layer only after applying the surveillance program's approved rule.
+
+The reference needs one row per date. A reference with two rows for a date,
+such as one per source, would be drawn as one line zigzagging between them,
+so it stops instead:
+
+```{r reference-duplicate, error=TRUE}
+by_source <- merge(
+  historical_reference,
+  data.frame(source = c("Community", "Facility"))
+)
+
+islh_epi_curve(
+  totals,
+  date = period_start,
+  count = count,
+  reference = by_source
+)
+```
+
+Filter the reference to the series the bars show. In a faceted figure, a
+reference with the facet column gives each panel its own band, one row per
+date and panel; a reference without it is drawn in every panel.
 
 ## Showing uncertainty
 
@@ -228,16 +259,26 @@ ggplot2::ggplot(monthly, ggplot2::aes(x = month, y = rate)) +
 ```
 
 The summer rates, 4 to 8 per 100,000, each rest on 3 to 6 cases, so their
-bands are wide and overlap one another: the dip from June to September is not
-clear evidence of a fall. The winter rise is clearer. By February the whole
-band sits above every summer estimate.
+bands are wide: these estimates cannot say whether the dip from June to
+September is real. The winter rise is larger than that uncertainty. By
+February the whole band sits above every summer estimate.
+
+Read the bands as a guide, not a test. Two intervals that overlap do not show
+that two rates are the same, and two rates can differ clearly even when their
+intervals overlap. To compare two periods or two areas, calculate the rate
+ratio or difference with its own interval, as the islandepi article shows.
+Months next to each other share a season and often the same outbreak, so they
+are not independent either; a trend question needs a model that allows for
+that.
 
 ### Tables
 
 Put the interval beside the estimate, as `30.3 (15.1 to 54.2)`, and name the
-method and confidence level in the table notes. Use "to" rather than a hyphen,
-which reads like a minus sign. Format the columns, then pass the data frame to
-`islh_gt()` or `islh_flextable()`.
+method and confidence level in the table notes, such as "95% confidence
+intervals, exact Poisson method". Keep the three together wherever the
+estimate goes, so a figure caption says the same as the table beside it. Use
+"to" rather than a hyphen, which reads like a minus sign. Format the columns,
+then pass the data frame to `islh_gt()` or `islh_flextable()`.
 
 ## Facet by geography
 
@@ -260,6 +301,61 @@ islh_epi_curve(
 For many geographic groups, faceting is generally easier to read than assigning
 every geography a different colour.
 
+### Quiet regions and unknown regions
+
+A region with no cases is a result, not a gap. Keep its rows with a count of
+zero and it keeps its panel, in bars and in case tiles alike:
+
+```{r quiet-region, fig.alt="Two small-multiple case-tile epidemic curves. The Active panel shows cases in three of four days. The Quiet panel has the same dates and no tiles."}
+outbreak_by_region <- data.frame(
+  onset_date = rep(as.Date("2026-03-01") + 0:3, times = 2),
+  region = rep(c("Active", "Quiet"), each = 4),
+  count = c(0, 2, 3, 1, 0, 0, 0, 0)
+)
+
+islh_epi_curve(
+  outbreak_by_region,
+  date = onset_date,
+  count = count,
+  facet = region,
+  style = "cases",
+  date_breaks = "1 day",
+  title = "Cases by symptom-onset date and region"
+)
+```
+
+A row with no region is drawn in a panel of its own, labelled `NA`, and its
+totals are labelled like any other panel's:
+
+```{r unknown-region, fig.alt="Three small-multiple weekly epidemic curves with total labels: North, South and NA, which holds the cases with no region recorded."}
+with_unknown <- data.frame(
+  period_start = rep(weeks[1:4], times = 3),
+  region = rep(c("North", "South", NA), each = 4),
+  count = c(3, 5, 4, 2, 6, 8, 7, 5, 1, 0, 2, 1)
+)
+
+islh_epi_curve(
+  with_unknown,
+  date = period_start,
+  count = count,
+  facet = region,
+  labels = "total",
+  date_breaks = "2 weeks",
+  title = "Reported cases by week and region"
+)
+```
+
+Before publishing, give that panel a name readers understand:
+
+```{r unknown-region-name, eval=FALSE}
+with_unknown$region[is.na(with_unknown$region)] <- "Region not recorded"
+```
+
+A period with no row at all is different from a zero: the function cannot
+tell an absent row from a week nobody reported on, so it leaves the space
+empty. Fill in zeros only where reporting is known to be complete, as the next
+section explains.
+
 ## Start from event-level data
 
 The complete two-package workflow is:
@@ -271,6 +367,12 @@ counts <- islandepi::islh_count_events(
   id = investigation_id,
   by = c(condition, region),
   interval = "epiweek",
+  # The weeks reporting is confirmed complete for, not the first and last
+  # event: the first case is not when surveillance started.
+  from = "2025-08-31",
+  to = "2026-02-28",
+  # Every condition and region expected, including any with no events.
+  groups = expected_groups,
   fill = TRUE,
   include_partial = FALSE
 )
@@ -284,6 +386,12 @@ islh_epi_curve(
   title = "Weekly communicable disease reports"
 )
 ```
+
+`fill = TRUE` turns a week with no events into a count of zero. That is right
+only inside `from` and `to`, and only for groups and weeks where every source
+was reporting. A week when a feed was down, or a site had not yet joined, is
+unknown rather than zero: leave it out of the window, or show it separately.
+The islandepi surveillance guide covers coverage checks before counting.
 
 The plotting package does not depend on `islandepi`; prepared counts from
 another validated workflow work equally well.

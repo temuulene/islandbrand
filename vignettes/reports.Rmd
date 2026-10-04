@@ -41,6 +41,41 @@ file, run `islh_install_deps("docx")` once on that machine, then open
 `format` takes `"html"`, `"docx"` or `"both"`. With `"both"`, the report
 chooses its table engine at render time, so one file produces either output.
 
+`islh_create_report()` writes only into a new or empty folder. A folder
+holding anything, even only a hidden `.git` or `.gitignore`, makes it stop
+before writing, unless you pass `overwrite = TRUE`. Then it lists the files it
+replaced.
+
+## Keep the project in Git
+
+Commit the whole project. The `.gitignore` the scaffold writes leaves
+rendered reports out but keeps everything needed to render them, including
+the Word template inside `_extensions`:
+
+```{r gitignore}
+writeLines(readLines(file.path(project, ".gitignore")))
+```
+
+The `!` lines matter: without them `*.docx` would also leave out
+`islh-report-reference.docx`, and a colleague who cloned the project could
+not render it to Word. To confirm Git keeps the template, run this in the
+project folder. It prints nothing when the file is kept:
+
+```sh
+git check-ignore -v _extensions/islh/islh-report/islh-report-reference.docx
+```
+
+A project created with an older version of the package may have a
+`.gitignore` without those lines. Add them, then commit the template:
+
+```sh
+git add _extensions _islh-manifest.csv
+git commit -m "Track the Island Health Word template"
+```
+
+The surest check is a fresh clone: clone the project into a new folder and
+render it there. If it renders, nothing it needs is left out of Git.
+
 ## Add the format to a project you already have
 
 ```{r add-format, message=TRUE}
@@ -96,7 +131,7 @@ project.
 
 `islh_update_project()` brings the out-of-date and missing files forward.
 Anything you have edited is left alone, and whatever it replaces is copied
-into a timestamped folder under `_islh-backup` first.
+into a new folder under `_islh-backup` first.
 
 ```{r update-project, message=TRUE}
 # See what would change without changing anything.
@@ -108,11 +143,47 @@ islandbrand::islh_update_project(project)
 The missing logo is back, and the edited `_brand.yml` is untouched.
 
 If you meant to discard your own edits, `force = TRUE` replaces those files
-too. The backup is what makes that recoverable.
+too. The backup is what makes that recoverable:
+
+```{r force-update, message=TRUE}
+islandbrand::islh_update_project(project, force = TRUE)
+```
+
+Each update that replaces files writes a new backup folder, named for the
+time it ran, and never writes into an earlier one. Two updates in the same
+second get two folders. So every backup holds the files as they were before
+that update:
+
+```{r backups}
+backups <- list.dirs(file.path(project, "_islh-backup"), recursive = FALSE)
+basename(backups)
+list.files(backups, recursive = TRUE)
+```
+
+To restore a file, copy it from the backup back to the same place in the
+project. Here the edited `_brand.yml` comes back from the newest backup:
+
+```{r restore-backup, message=TRUE}
+newest <- backups[length(backups)]
+file.copy(
+  file.path(newest, "_brand.yml"),
+  file.path(project, "_brand.yml"),
+  overwrite = TRUE
+)
+islandbrand::islh_check_project(project)
+```
+
+A backup of a file you edited may be the only copy of that edit, unless it
+was committed to Git: the package cannot make it again. Keep backups until
+you have checked the update. `_islh-backup` is left out of Git, so delete it
+yourself when you no longer need it.
 
 A project scaffolded before this feature existed has no manifest, so a file
 that differs from the installed version is reported as unverifiable rather than
 guessed at, and is left alone until you replace it with `force = TRUE`.
+
+An update that changes nothing leaves the manifest as it was, so Git shows no
+change.
 
 ## The setup chunk
 
@@ -177,13 +248,34 @@ islh_gt(
 )
 ```
 
-In a dual-format report, select the table engine from the output format:
+In a dual-format report, select the table engine from the output format,
+and put the caption in the chunk options, not in the table call. Quarto then
+numbers it, places it above the table in both formats, and lets you refer to
+it as `@tbl-programs`. A caption set in both places prints twice. This is the
+convention the scaffolded `report.qmd` uses:
 
-```{r dual-format-table}
-if (knitr::is_html_output()) {
+````
+```{r}
+#| label: tbl-programs
+#| tbl-cap: "Encounters by program, April 2025 to March 2026"
+
+if (identical(getOption("islh.output_format"), "html")) {
   islh_gt(report_data)
 } else {
-  islh_flextable(report_data, caption = "Program activity")
+  islh_flextable(report_data)
+}
+```
+````
+
+`islh_setup()` sets `islh.output_format` to `"html"` or `"docx"` from the
+render, so the same chunk works in both. This article is HTML, so it takes
+the first branch:
+
+```{r dual-format-table}
+if (identical(getOption("islh.output_format"), "html")) {
+  islh_gt(report_data)
+} else {
+  islh_flextable(report_data)
 }
 ```
 
@@ -236,13 +328,19 @@ The Word format uses a reference document built from the official Island
 Health letterhead: the logo header, the `Island Health / Page X of Y` footer,
 BC Sans, and headings in the letterhead's dark blue.
 
-Two things to know:
+Things to know:
 
-- The table of contents renders empty. Word populates it as a field the first
-  time the document is opened. That is Word's behaviour, not a fault in the
-  template.
+- The table of contents is a Word field, which Pandoc writes empty. Some Word
+  versions offer to update fields when the document opens; others show the
+  table empty until you update it. To fill or refresh it, right-click it and
+  choose **Update Field**, then **Update entire table**. Do this again after
+  editing the document in Word, and before saving the copy you release.
 - Word locks a file it has open. Close `report.docx` before re-rendering, or
   the render fails on a permission error.
+- Check the final document in Microsoft Word itself, on the version the team
+  uses. LibreOffice and web previews lay out pages differently. Look at the
+  table of contents, the page numbers in the footer, long tables, grouped
+  headings near a page break, and figures close to a page's length.
 
 ## Troubleshooting
 
@@ -270,8 +368,14 @@ for a source build.
 
 ## Before anything leaves your team
 
-Reports built this way are ordinary files with no access controls. Never put
-identifiable information in one, and suppress small cells before sharing:
+Reports built this way are ordinary files with no access controls. The HTML
+format embeds its images, styles and, where BC Sans is installed, the font in
+the one file, so it opens anywhere, offline, as sent. That makes it portable, not protected: anyone who
+receives the file can open it and forward it. Control access where the file
+is stored and how it is sent.
+
+Never put identifiable information in a report, and suppress small cells
+before sharing:
 
 ```r
 counts$cases <- islandepi::islh_suppress(counts$cases, threshold = 5)

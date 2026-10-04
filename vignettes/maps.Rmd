@@ -242,48 +242,184 @@ ggplot(map_data, aes(fill = rate)) +
 Bins recalculated from each year's data make an unchanged pattern look like a
 change.
 
+This example maps a crude rate because the example data holds only each
+area's total population, with no age groups. Crude rates of areas with
+different age structures are not comparable: an older area has more cases of
+most conditions without any difference in risk. For a published map, count
+cases and population by age group and standardize, with
+`islandepi::islh_dsr_joined()`, one area at a time. The map code is the same;
+only the column, the title and the caption change:
+
+```{r standardized-rates, eval=FALSE}
+standard <- islandepi::islh_standard_population(
+  "canada_2011",
+  age_breaks = c(0, 20, 45, 65, 85)
+)
+
+# cases_by_age and population_by_age: one row per area and age_group.
+standardized <- do.call(rbind, lapply(map_data$geography_code, function(code) {
+  rate <- islandepi::islh_dsr_joined(
+    cases_by_age[cases_by_age$geography_code == code, ],
+    population_by_age[population_by_age$geography_code == code, ],
+    standard,
+    by = "age_group",
+    standard_id = "Canada 2011, five age groups"
+  )
+  data.frame(geography_code = code, rate)
+}))
+```
+
+Name the standard population and its age groups in the caption, such as
+"Age-standardized to the 2011 Canadian population".
+
 Five to seven bins is the ceiling. Beyond that nobody can match a swatch back
 to the map.
 
 ## Keep suppressed, zero and missing apart
 
 Suppressed, zero and no data are three different statements and must read as
-three different things.
+three different things. In this simulation, Vancouver Island West has 1 case,
+so its count is suppressed. Suppose also that Cowichan Valley West had no cases
+and that Vancouver Island North's data had not arrived:
 
-`scale_fill_islh_b()` fills areas with no data in a grey lighter than every
-bin, so a greyscale print still separates them from the lowest band. Draw
-suppressed areas as their own layer with their own key:
+```{r status-data}
+status_data <- map_data
+status_data$cases[status_data$geography_name == "Cowichan Valley West"] <- 0
+status_data$cases[status_data$geography_name == "Vancouver Island North"] <- NA
 
-```{r suppressed-map, eval=requireNamespace("ggnewscale", quietly = TRUE), fig.alt="The simulated rate map with Vancouver Island West, which had fewer than five cases, drawn in a separate grey with its own legend key labelled Suppressed."}
-suppressed <- map_data[map_data$cases < 5, ]
-released <- map_data[map_data$cases >= 5, ]
+status_data$status <- ifelse(
+  is.na(status_data$cases),
+  "No data",
+  ifelse(
+    status_data$cases == 0,
+    "No cases",
+    ifelse(status_data$cases < 5, "Suppressed: 1 to 4 cases", "Rate shown")
+  )
+)
+status_data$rate <- ifelse(
+  status_data$status %in% c("Rate shown", "No cases"),
+  status_data$cases / status_data$population * 1e5,
+  NA
+)
+table(status_data$status)
+```
 
-ggplot(released, aes(fill = rate)) +
-  geom_sf(colour = islh_hex("grey", 80), linewidth = 0.25) +
+Draw the rates in their bands and the other three as a separate layer with its
+own key. Each takes a lightness of its own, so a greyscale print still tells
+them apart, and no data also has a dashed outline:
+
+```{r status-map, eval=requireNamespace("ggnewscale", quietly = TRUE), fig.height=5.4, fig.alt="The simulated rate map. Eleven areas are in rate bands. Cowichan Valley West is pale blue, labelled No cases. Vancouver Island West is mid grey, labelled Suppressed: 1 to 4 cases. Vancouver Island North is white with a dashed outline, labelled No data."}
+shown <- status_data[status_data$status == "Rate shown", ]
+other <- status_data[status_data$status != "Rate shown", ]
+statuses <- c("No cases", "Suppressed: 1 to 4 cases", "No data")
+other$status <- factor(other$status, levels = statuses)
+
+ggplot() +
+  geom_sf(
+    data = shown,
+    aes(fill = rate),
+    colour = islh_hex("grey", 80),
+    linewidth = 0.25
+  ) +
   scale_fill_islh_b(name = "Rate per 100,000", breaks = c(80, 90, 100)) +
   ggnewscale::new_scale_fill() +
   geom_sf(
-    data = suppressed,
-    aes(fill = "Suppressed"),
-    colour = islh_hex("grey", 60),
-    linewidth = 0.25
+    data = other,
+    aes(fill = status, linetype = status),
+    colour = islh_hex("grey", 40),
+    linewidth = 0.35
   ) +
   scale_fill_manual(
-    values = c(Suppressed = islh_hex("grey", 60)),
-    name = NULL
+    name = NULL,
+    values = stats::setNames(
+      c(islh_hex("blue", 90), islh_hex("grey", 80), "white"),
+      statuses
+    ),
+    drop = FALSE
+  ) +
+  scale_linetype_manual(
+    name = NULL,
+    values = stats::setNames(c("solid", "solid", "22"), statuses),
+    drop = FALSE
   ) +
   coord_islh_map() +
   labs(
     title = "Crude rate by local health area",
-    subtitle = "Per 100,000; counts under 5 suppressed"
+    subtitle = "Per 100,000; simulated; counts of 1 to 4 suppressed"
   ) +
-  theme_islh_map()
+  theme_islh_map() +
+  # Two keys side by side are wider than the map; stack them.
+  theme(legend.box = "vertical", legend.box.just = "left")
 ```
 
-This example uses `ggnewscale` to give the suppression layer its own legend.
-For a hatch rather than a flat fill, `ggpattern::geom_sf_pattern()` does the
-same job. Give zero counts their own baseline tint through an explicit lowest
-break so a reader does not read zero cases as uncollected data.
+A zero is a result: here it is the palest blue, below the lowest band, rather
+than grey. For a hatch rather than a flat fill, `ggpattern::geom_sf_pattern()`
+does the same job as the second layer.
+
+## Show the estimates and their intervals
+
+A classified map cannot show how certain each rate is. Southern Gulf Islands
+and Cowichan Valley South share the top band, but the first rests on 23 cases
+and could be anywhere from about 76 to 180 per 100,000, while the second
+rests on 67. When precision affects how the map should be read, put a table
+beside it with each estimate and its interval. The table is also
+the accessible alternative to the map: it says in words what the colours say.
+
+This uses the exact Poisson interval, written out in base R.
+`islandepi::islh_crude_rate(cases, population, method = "exact")` returns
+the same values:
+
+```{r rate-table, eval=requireNamespace("gt", quietly = TRUE)}
+exact_interval <- function(cases, population, per = 1e5, level = 0.95) {
+  alpha <- 1 - level
+  lower <- ifelse(cases == 0, 0, stats::qchisq(alpha / 2, 2 * cases) / 2)
+  upper <- stats::qchisq(1 - alpha / 2, 2 * cases + 2) / 2
+  list(lower = lower / population * per, upper = upper / population * per)
+}
+
+areas_table <- sf::st_drop_geometry(status_data)
+interval <- exact_interval(areas_table$cases, areas_table$population)
+one_decimal <- function(x) formatC(x, format = "f", digits = 1)
+
+areas_table$estimate <- ifelse(
+  areas_table$status %in% c("Rate shown", "No cases"),
+  paste0(
+    one_decimal(areas_table$rate),
+    " (",
+    one_decimal(interval$lower),
+    " to ",
+    one_decimal(interval$upper),
+    ")"
+  ),
+  areas_table$status
+)
+areas_table$cases_shown <- ifelse(
+  areas_table$status %in% c("Rate shown", "No cases"),
+  format(areas_table$cases, big.mark = ","),
+  ifelse(areas_table$status == "No data", "No data", "1 to 4")
+)
+
+rate_table <- data.frame(
+  "Local health area" = areas_table$geography_name,
+  Cases = areas_table$cases_shown,
+  Population = format(areas_table$population, big.mark = ","),
+  "Rate per 100,000 (95% CI)" = areas_table$estimate,
+  check.names = FALSE
+)
+
+islh_gt(
+  rate_table,
+  title = "Crude rate by local health area",
+  source_note = paste(
+    "Simulated cases. 95% confidence intervals, exact Poisson method.",
+    "Counts of 1 to 4 suppressed."
+  )
+)
+```
+
+Vancouver Island North's population is known, but without its cases there is
+no rate and no interval. The interval for Cowichan Valley West shows that no
+cases in 7,329 people is consistent with a rate of up to about 50 per 100,000.
 
 ## Insets for the urban areas
 
@@ -291,17 +427,41 @@ Vancouver Island North and West dominate the page while Greater Victoria, where
 most of the population lives, shrinks to a few small polygons. Build the dense
 areas as their own panels and combine them:
 
-```{r inset, eval=requireNamespace("patchwork", quietly = TRUE), fig.width=8, fig.alt="The population map beside an enlarged panel of Greater Victoria and the Saanich Peninsula."}
-victoria <- base_map +
-  coord_islh_map(xlim = c(1170000, 1215000), ylim = c(375000, 420000)) +
-  labs(title = NULL, subtitle = NULL, caption = NULL) +
-  theme_islh_map(legend = "none")
+```{r inset, eval=requireNamespace("patchwork", quietly = TRUE), fig.width=8, fig.alt="The population map with a dark rectangle around Greater Victoria and the Saanich Peninsula, beside an enlarged panel of that rectangle."}
+inset_x <- c(1170000, 1215000)
+inset_y <- c(375000, 420000)
 
-patchwork::wrap_plots(base_map, victoria, widths = c(2, 1))
+victoria <- base_map +
+  coord_islh_map(xlim = inset_x, ylim = inset_y) +
+  labs(title = NULL, subtitle = NULL, caption = NULL) +
+  theme_islh_map(legend = "none") +
+  theme(
+    panel.border = element_rect(
+      colour = islh_hex("grey", 20),
+      fill = NA,
+      linewidth = 0.8
+    )
+  )
+
+# The rectangle on the overview shows where the enlarged panel is.
+overview <- base_map +
+  annotate(
+    "rect",
+    xmin = inset_x[1],
+    xmax = inset_x[2],
+    ymin = inset_y[1],
+    ymax = inset_y[2],
+    fill = NA,
+    colour = islh_hex("grey", 20),
+    linewidth = 0.5
+  )
+
+patchwork::wrap_plots(overview, victoria, widths = c(2, 1))
 ```
 
-`patchwork::inset_element()` places the panel over the main map instead. Draw a
-rectangle on the overview showing the inset extent either way.
+`patchwork::inset_element()` places the panel over the main map instead. Keep
+the rectangle either way, and frame the inset panel in the same colour so the
+two read as a pair.
 
 If the report is about people rather than land, consider a tile map or a
 population cartogram; a choropleth of rural areas is mostly a map of geography.
@@ -365,13 +525,19 @@ ggplot(rates, aes(week, rate, colour = name)) +
   theme_islh()
 ```
 
-Label text sits beside the line in dark grey, not in the line's colour: small
-text needs 70 values of contrast with the page, which the lighter shades do
-not have.
+`scale_colour_islh_area()` draws each line in the area's `line_colour`, 10
+values darker than its fill, so every line reaches at least 3:1 against the
+page, the minimum for a line a reader needs to follow. The fills of the
+lightest areas, such as Saanich Peninsula, measure only about 2.3:1 on white,
+which is why lines do not use them. Label text sits beside the line in Grey 15,
+about 16:1, not in the line's colour: text needs 4.5:1, which not every line
+colour reaches.
 
 On a map, `islh_area_labels()` writes each area's code without overlaps.
 Eight areas are large enough to hold their code, which sits inside in the
-area's `label_colour`: white or Grey 10, whichever the fill needs. The six
+area's `label_colour`: white or Grey 10, whichever contrasts more with the
+fill. Every pair reaches at least 4.5:1, so the codes do not rely on being
+large. The six
 small South and Central Island areas are labelled in a column over the Strait
 of Georgia, each joined to its area by a thin line, so no code crosses a
 border:
@@ -399,8 +565,9 @@ part of it, label the areas yourself.
 The scales match the official names or the three-digit codes, so data from
 `islh_bc_geography()` works as it comes. A value that matches no LHA, such as
 a misspelled name, is drawn grey with a warning naming it.
-`scale_fill_islh_area("hsda")` does the same for the three HSDAs, in each
-family's representative colour.
+`scale_fill_islh_area("hsda")` does the same for the three HSDAs. South
+Vancouver Island is Blue 45, one step darker than the primary Blue 50: white
+text on Blue 50 measures 4.45:1, just short of 4.5:1.
 
 ## Colour and contrast
 
@@ -410,6 +577,22 @@ readable in greyscale and for colour-blind readers, so the brand colours do not
 need replacing with Viridis here. Check any palette you build yourself with
 `colorspace::specplot()`, view the finished map through `colorspace::deutan()`,
 and print it in greyscale once. Internal readers print.
+
+Lightness steps do not replace measuring contrast where it matters. The WCAG
+thresholds are ratios, and a ratio just under one fails it:
+
+| What | Minimum against what is behind it |
+|---|---|
+| Text: labels, codes, legend text | 4.5:1 |
+| Large text: 18 pt regular or 14 pt bold, about 24 px or 18.7 px | 3:1 |
+| Lines, points and other marks a reader needs to read the figure | 3:1 |
+
+In ggplot2, text `size` is in millimetres: 18 pt is about 6.4 and 14 pt about
+4.9. The package's area colours meet these: every `label_colour` on its fill
+reaches 4.5:1, and every `line_colour` reaches 3:1 on white. The tests check
+the ratios, not the brand values. A map's fills meet each other more than the
+page, and are outlined and labelled, so a pale fill beside the white page does
+not on its own make the map unreadable.
 
 Use a diverging scale only when the map compares against a baseline, such as a
 standardized ratio against the Island Health average. "Where is this worse than
@@ -438,3 +621,15 @@ Capture `attr(population_extract, "bcdata_source")` and the corresponding
 attribute on `boundaries` before transforming them. Save a dated extract in
 the analysis project when a report must reproduce the exact population or
 boundary version used for publication.
+
+The example map in this package keeps its own build record: when the data was
+retrieved, the exact addresses it came from, and how it was processed. The
+script that builds it also records the hash of each raw response, so a rebuild
+after the catalogue is corrected can be told apart from this one:
+
+```{r provenance}
+record <- utils::read.csv(
+  system.file("extdata", "islh-lha-provenance.csv", package = "islandbrand")
+)
+record[record$field %in% c("retrieved_utc", "population_year", "crs"), ]
+```

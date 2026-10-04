@@ -21,22 +21,67 @@ islh_version()
 
 ## What changes
 
-Nothing about the function names. `theme_islh()`, `islh_setup()`,
-`islh_flextable()` and the rest work exactly as before. What changes is where
-they come from: the package, rather than a copy of the script inside your
-project. A fix then reaches your report the next time you update `islandbrand`,
-instead of the next time you download a ZIP.
+The function names you used stay the same. What changes is where they come
+from: the package, rather than a copy of the script inside your project. A
+fix then reaches your report the next time you update `islandbrand`, instead
+of the next time you download a ZIP.
 
-## The three steps
+| In the script or starter kit | In the package |
+|---|---|
+| `theme_islh()`, `islh_setup()`, `islh_flextable()`, the `scale_*_islh()` functions | Kept, with the same names. Check each reference page for new arguments. |
+| `source("R/island-health-ggplot-theme.R")` | Replaced by `library(islandbrand)` |
+| `islh_theme_version` | Replaced by `islh_version()` |
+| `install-packages.R` | Replaced by `islh_install_deps()` |
+| A loose `islh-report-reference.docx` and a `reference-doc:` line | Replaced by the `islh-report-docx` format from `islh_use_quarto()` |
+| The starter-kit ZIPs | Replaced by `islh_create_report()` |
+| Nothing | New: `islh_reset()` and `with_islh()` to undo setup, `islh_check_project()` and `islh_update_project()` to keep project files current |
 
-**1. Install the package.**
+## Install the package
+
+On an Island Health laptop, install the approved version from its Windows
+`.zip`, from your team lead or the
+[Releases page](https://github.com/temuulene/islandbrand/releases). R loads
+the packages `islandbrand` is built on before any of its functions can run,
+so install those first:
+
+```{r install-file, eval=FALSE}
+install.packages(
+  c("cli", "ggplot2", "rlang", "scales", "systemfonts"),
+  type = "binary"
+)
+install.packages("path/to/islandbrand_x.y.z.zip", repos = NULL)
+islandbrand::islh_install_deps("docx") # or "html", or "both"
+```
+
+Replace `x.y.z` with the approved version, then restart R. PHASE staff can
+instead use `install-phase.R` from the paired `islandepi` release.
+
+On a development machine with access to GitHub:
 
 ```{r install-package, eval=FALSE}
 install.packages("remotes", type = "binary")
 remotes::install_github("temuulene/islandbrand")
 ```
 
-**2. Change the setup chunk.** Replace:
+## Move a project, safely
+
+Work through these in order, and delete nothing until the report renders.
+
+**1. Keep a copy of what you have.** Commit the project to Git, or copy the
+folder. The steps below replace files.
+
+**2. Add the format and brand files.** From inside the project:
+
+```{r add-files, eval=FALSE}
+islandbrand::islh_use_quarto()
+islandbrand::islh_use_brand()
+islandbrand::islh_check_project()
+```
+
+`islh_check_project()` should report every file up to date. If you had
+edited a brand file of your own, keep your edits in the new `_brand.yml`.
+
+**3. Change the setup chunk.** Replace:
 
 ```{r old-setup, eval=FALSE}
 source("R/island-health-ggplot-theme.R")
@@ -53,12 +98,29 @@ islh_setup()
 In a rendered document, as here, setup detects HTML or Word and sets up the
 matching tables. At the console it configures plots only.
 
-**3. Delete the copied script**, and the `R/` folder if it holds nothing else.
+**4. Point the front matter at the format.** For a Word report, replace the
+`reference-doc:` line with:
 
-For a Word report, also run `islh_use_quarto()` and point the front matter at
-`format: islh-report-docx`. That replaces the loose `islh-report-reference.docx`
-and the hand-written `reference-doc:` line; you can delete the local copy of
-the reference document.
+```yaml
+format: islh-report-docx
+```
+
+Use `islh-report-html` for HTML.
+
+**5. Render to every format the report uses**, and compare the output with
+the last version you released.
+
+**6. Only then remove what the package replaced:** the copied script, the
+`R/` folder if it holds nothing else, and the loose reference document.
+Before deleting the loose `islh-report-reference.docx`, check that its
+replacement is in `_extensions/islh/islh-report/` and that Git tracks it:
+
+```sh
+git ls-files _extensions/islh/islh-report/islh-report-reference.docx
+```
+
+That prints the path when the file is tracked. If it prints nothing, see
+"Keep the project in Git" in [Writing reports](reports.html).
 
 ## Things that are gone
 
@@ -75,20 +137,22 @@ the reference document.
 The package declares minimum versions the script never did:
 
 - **ggplot2 3.5.0** for the colour scales. On an older ggplot2 they used to
-  fail inside ggplot2 with `argument "scale_name" is missing`.
+  fail inside ggplot2 with `argument "scale_name" is missing`. R now refuses
+  to load `islandbrand` with an older ggplot2, and says which version it
+  needs.
 - **flextable 0.9.10** for `islh_flextable()`. On an older flextable it used to
-  fail with `unused argument (repeat_headers = TRUE)`.
+  fail with `unused argument (repeat_headers = TRUE)`. Now `islh_setup()` and
+  every Word table function, including a direct `islh_flextable()` call,
+  stop first with a message naming flextable, the version needed and the
+  install command.
 
 If a report that used to run now stops with a clear message naming one of
 these, that is the version gate doing its job. `islh_install_deps()` will
-bring the package up to date.
+bring the package up to date; restart R afterwards.
 
 ## If you cannot install packages
 
-Some machines will not let you. `islh_check()` will tell you what is missing,
-and your team lead can supply a built copy of `islandbrand` to install from a
-file:
-
-```{r install-file, eval=FALSE}
-install.packages("path/to/islandbrand_0.4.0.zip", repos = NULL)
-```
+Some machines will not let you. `islh_check("docx")` or `islh_check("html")`
+will tell you what is missing for that format. Your team lead can supply a
+built copy of `islandbrand` and the packages it needs, to install from files
+as above.

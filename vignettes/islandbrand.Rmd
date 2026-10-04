@@ -24,6 +24,40 @@ islh_setup(format = "html", quiet = TRUE)
 Health visual system. This guide starts with working output, then explains which
 function to use for each task.
 
+## Before you start
+
+Install the package once per computer, in this order:
+
+1. The packages `islandbrand` is built on. R loads them before any
+   `islandbrand` function can run, so no `islandbrand` function can install
+   them for you:
+
+   ```r
+   install.packages(
+     c("cli", "ggplot2", "rlang", "scales", "systemfonts"),
+     type = "binary"
+   )
+   ```
+
+2. `islandbrand` itself, from the approved Windows `.zip` your team lead
+   gives you, or from a published
+   [release](https://github.com/temuulene/islandbrand/releases):
+
+   ```r
+   install.packages("path/to/islandbrand_x.y.z.zip", repos = NULL)
+   ```
+
+   PHASE staff can use `install-phase.R` from the paired `islandepi` release,
+   which does steps 1 and 2 and checks the result.
+
+3. What your output format needs, then restart R:
+
+   ```r
+   islandbrand::islh_install_deps("html")   # "docx", or "both"
+   ```
+
+`islh_check("html")` or `islh_check("docx")` reports anything still missing.
+
 ## Choose a starting point
 
 | I want to... | Start with | What it returns |
@@ -66,9 +100,7 @@ encounter_plot <- ggplot(counts, aes(program, encounters, fill = program)) +
 encounter_plot
 ```
 
-For HTML, pass the same data frame to `islh_gt()`. The returned object is still
-a regular `gt` table, so formatting can be added before or after applying the
-theme.
+For HTML, pass the same data frame to `islh_gt()`:
 
 ```{r example-table}
 islh_gt(
@@ -77,6 +109,22 @@ islh_gt(
   subtitle = "Illustrative values",
   source_note = "Source: simulated package data."
 )
+```
+
+`islh_gt()` also takes a table already built with `gt`, and returns an
+ordinary `gt` table. So formatting can go before the styling, such as number
+formats, and after it, such as a footnote:
+
+```{r example-table-steps}
+counts |>
+  gt::gt() |>
+  gt::fmt_number(columns = encounters, decimals = 0) |>
+  gt::cols_label(program = "Program", encounters = "Encounters") |>
+  islh_gt(title = "Program activity") |>
+  gt::tab_footnote(
+    "Counts are illustrative.",
+    locations = gt::cells_column_labels(encounters)
+  )
 ```
 
 For Word, replace that call with `islh_flextable(counts)`. The Word table is
@@ -141,7 +189,9 @@ A plot returned from the block takes its own copy of the theme, the default
 colour scales and the geom colours, so it looks the same when you print it
 later.
 
-Check optional dependencies before rendering a report:
+Check optional dependencies before rendering a report. Name the format: a
+plain `islh_check()` at the console checks plots only, because no render is
+running to say which format is wanted.
 
 ```{r dependency-check}
 check <- islh_check("html", quiet = TRUE)
@@ -150,6 +200,9 @@ check[c("format", "tables", "ok")]
 
 If `ok` is `FALSE`, run `islh_install_deps("html")`, `"docx"` or `"both"` once
 on that computer.
+
+If setup fails part way, for example because a table package is broken, it
+puts the session back as it found it, so there is nothing to reset.
 
 ## Colours and scales
 
@@ -177,8 +230,10 @@ directly instead of asking colour alone to carry the distinction.
 
 ## Save output consistently
 
-`islh_save_plot()` applies standard report or slide dimensions and uses a
-high-quality raster device when available.
+`islh_save_plot()` applies standard report or slide dimensions and draws with
+the `ragg` device, which gives the same text and lines on every computer. It
+needs `ragg` installed, and stops with the install command if it is not:
+`install.packages("ragg", type = "binary")`.
 
 ```{r save-plot}
 path <- file.path(tempdir(), "encounters.png")
@@ -214,8 +269,9 @@ workflow and [Mapping BC health geographies](maps.html) for maps.
 
 ## Common problems
 
-- A table function reports a missing package: run `islh_check()` and install
-  the dependency set for the output format.
+- A table function reports a missing or outdated package: run
+  `islh_check("html")` or `islh_check("docx")` for the format you are
+  rendering, then `islh_install_deps()` with the same format, and restart R.
 - A plot uses an unexpected font: run `islh_font_family()` to see which family
   was selected. BC Sans is not bundled with the package.
 - A Word render cannot replace its output: close the `.docx` file before
