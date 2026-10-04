@@ -50,16 +50,18 @@ jobs:
       - name: Pin declared minimum versions
         shell: Rscript {0}
         run: |
-          pin <- function(package, version) {
+          pin <- function(package, version, dependencies = FALSE) {
             remotes::install_version(
               package,
               version = version,
               upgrade = "never",
-              dependencies = FALSE
+              dependencies = dependencies
             )
           }
           if (Sys.getenv("FLOOR") == "hard") {
-            pin("ggplot2", "3.5.0")
+            # ggplot2 3.5.0 imports packages, such as tibble, that the current
+            # release does not, so install what it needs as well.
+            pin("ggplot2", "3.5.0", dependencies = c("Depends", "Imports"))
           } else {
             pin("flextable", "0.9.10")
             pin("gtsummary", "2.0.3")
