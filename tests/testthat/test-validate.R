@@ -70,6 +70,11 @@ test_that("the public functions use the shared checks", {
   )
   expect_error(islh_check(tables = NA), "single TRUE or FALSE")
   expect_error(islh_check(embed_fonts = "yes"), "single TRUE or FALSE")
+})
+
+test_that("plot saving uses the shared checks", {
+  # islh_save_plot() asks for ragg before it looks at its arguments.
+  skip_if_not_installed("ragg")
   expect_error(
     islh_save_plot("figure.png", dpi = 0),
     "positive"
