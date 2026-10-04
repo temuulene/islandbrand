@@ -27,7 +27,9 @@ islh_create_report(
 
 \item{rproj}{Write an RStudio \code{.Rproj} file.}
 
-\item{overwrite}{Write into a directory that already has files in it.}
+\item{overwrite}{Write into a directory that already has files in it,
+including hidden ones such as \code{.git} or \code{.gitignore}. Any of the
+project's files already there are replaced, and the message lists them.}
 }
 \value{
 The project path, invisibly.
@@ -47,6 +49,15 @@ in every project, so a theme fix reached nobody until they downloaded a new
 ZIP. A scaffolded project carries no copy: \code{report.qmd} calls
 \code{library(islandbrand)}, so it picks up whatever version is installed.
 }
+\section{Git}{
+
+
+The project's \code{.gitignore} leaves rendered reports out of Git but keeps
+everything needed to render them, including the Word template inside
+\verb{_extensions}. Commit the whole project, including \verb{_islh-manifest.csv},
+and a fresh clone renders as it stands.
+}
+
 \examples{
 project <- file.path(tempdir(), "flu-season-report")
 islh_create_report(project, format = "html")

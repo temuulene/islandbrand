@@ -27,8 +27,14 @@
   "*_files/",
   "/.quarto/",
   "",
-  "# Backups written by islh_update_project(). Re-runnable, so not worth",
-  "# committing; the manifest beside them is.",
+  "# The Word template is an input, not output: commit it, or a fresh clone",
+  "# cannot render to Word.",
+  "!/_extensions/**/*.docx",
+  "!/_extensions/**/*.html",
+  "",
+  "# Copies islh_update_project() made of files before replacing them. They",
+  "# may hold your own edits, which cannot be made again from the package, so",
+  "# keep them until you have checked the update. Commit _islh-manifest.csv.",
   "/_islh-backup/",
   "",
   "# RStudio",
@@ -230,7 +236,16 @@
 #' @param author Report author. `NULL` leaves the field out.
 #' @param example_data Include the example CSV and the worked example.
 #' @param rproj Write an RStudio `.Rproj` file.
-#' @param overwrite Write into a directory that already has files in it.
+#' @param overwrite Write into a directory that already has files in it,
+#'   including hidden ones such as `.git` or `.gitignore`. Any of the
+#'   project's files already there are replaced, and the message lists them.
+#'
+#' @section Git:
+#'
+#' The project's `.gitignore` leaves rendered reports out of Git but keeps
+#' everything needed to render them, including the Word template inside
+#' `_extensions`. Commit the whole project, including `_islh-manifest.csv`,
+#' and a fresh clone renders as it stands.
 #'
 #' @return The project path, invisibly.
 #' @export
@@ -249,14 +264,16 @@ islh_create_report <- function(
   overwrite = FALSE
 ) {
   format <- match.arg(format)
+  example_data <- .islh_check_flag(example_data, "example_data")
+  rproj <- .islh_check_flag(rproj, "rproj")
+  overwrite <- .islh_check_flag(overwrite, "overwrite")
   name <- basename(normalizePath(path, mustWork = FALSE))
 
-  if (dir.exists(path) && length(list.files(path)) > 0L && !isTRUE(overwrite)) {
-    .islh_abort(c(
-      "{.file {path}} already has files in it.",
-      i = "Pass {.code overwrite = TRUE} to write into it anyway."
-    ))
-  }
+  replaced <- .islh_scaffold_preflight(
+    path,
+    .islh_scaffold_targets(name, example_data, rproj),
+    overwrite
+  )
   .islh_mkdir(path)
 
   write_lines <- function(lines, file) {
@@ -265,16 +282,16 @@ islh_create_report <- function(
 
   write_lines(.islh_quarto_yml(format), "_quarto.yml")
   write_lines(
-    .islh_report_qmd(title, author, format, isTRUE(example_data)),
+    .islh_report_qmd(title, author, format, example_data),
     "report.qmd"
   )
   write_lines(.islh_project_readme(name, format), "README.md")
   write_lines(.islh_project_gitignore, ".gitignore")
-  if (isTRUE(rproj)) {
+  if (rproj) {
     write_lines(.islh_rproj, paste0(name, ".Rproj"))
   }
 
-  if (isTRUE(example_data)) {
+  if (example_data) {
     .islh_copy(
       .islh_path("extdata", "example-program-counts.csv"),
       file.path(path, "data", "example-program-counts.csv")
@@ -292,12 +309,79 @@ islh_create_report <- function(
   install_for <- format
   .islh_inform(c(
     "v" = "Created {.file {path}}.",
+    "!" = if (length(replaced) > 0L) {
+      "Replaced {length(replaced)} file{?s} that {?was/were} already there:
+       {.file {replaced}}."
+    },
     "i" = "Open {.file {paste0(name, '.Rproj')}}, then run
            {.code islandbrand::islh_install_deps(\"{install_for}\")} once.",
     "i" = "Then open {.file report.qmd} and click Render."
   ))
 
   invisible(path)
+}
+
+# Every file islh_create_report() writes, relative to the project.
+.islh_scaffold_targets <- function(name, example_data, rproj) {
+  c(
+    "_quarto.yml",
+    "report.qmd",
+    "README.md",
+    ".gitignore",
+    if (rproj) paste0(name, ".Rproj"),
+    if (example_data) file.path("data", "example-program-counts.csv"),
+    .islh_project_assets()$path,
+    .islh_manifest_file
+  )
+}
+
+# Checks the whole project before writing any of it, so a refusal never leaves
+# half a project behind. Hidden entries count: a directory holding only `.git`
+# or a `.gitignore` is not empty, and the scaffold would replace that
+# `.gitignore`. Returns the targets that already exist and will be replaced.
+.islh_scaffold_preflight <- function(
+  path,
+  targets,
+  overwrite,
+  call = rlang::caller_env()
+) {
+  if (file.exists(path) && !dir.exists(path)) {
+    .islh_abort("{.file {path}} is a file, not a directory.", call = call)
+  }
+  existing <- if (dir.exists(path)) {
+    list.files(path, all.files = TRUE, no.. = TRUE)
+  } else {
+    character()
+  }
+  if (length(existing) > 0L && !overwrite) {
+    shown <- utils::head(existing, 5L)
+    more <- length(existing) - length(shown)
+    more <- if (more > 0L) paste0(" and ", more, " more") else ""
+    .islh_abort(
+      c(
+        "{.file {path}} already has files in it.",
+        x = "It holds {.file {shown}}{more}.",
+        i = "Choose a new or empty directory, or pass {.code overwrite = TRUE}
+             to write into it anyway. That replaces any of the project's
+             files already there."
+      ),
+      call = call
+    )
+  }
+
+  on_disk <- file.path(path, targets)
+  blocked <- targets[dir.exists(on_disk)]
+  if (length(blocked) > 0L) {
+    .islh_abort(
+      c(
+        "Cannot write the project into {.file {path}}.",
+        x = "{.file {blocked}} {?is a directory/are directories}, where the
+             project needs {?a file/files}."
+      ),
+      call = call
+    )
+  }
+  targets[file.exists(on_disk)]
 }
 
 # Backs the RStudio project template in

@@ -18,6 +18,9 @@
 
 .islh_manifest_path <- function(dir) file.path(dir, .islh_manifest_file)
 
+# The clock, behind a function so tests can fix it.
+.islh_now <- function() Sys.time()
+
 # Hashes ignore line endings in text files. Git on Windows commonly checks
 # text out with CRLF endings, so a project cloned there, or a package built on
 # a Windows runner, would otherwise read every text file as edited and the
@@ -43,11 +46,16 @@
     return(unname(tools::md5sum(path)))
   }
 
-  # Drop a carriage return only where it is followed by a line feed.
+  # Drop a carriage return only where it is followed by a line feed. A file
+  # with carriage returns but no CRLF pair is hashed as it stands: dropping
+  # `-integer(0)` would select no bytes and hash every such file as empty.
   crlf <- which(
     bytes[-length(bytes)] == carriage_return &
       bytes[-1L] == as.raw(10L)
   )
+  if (length(crlf) == 0L) {
+    return(unname(tools::md5sum(path)))
+  }
   normalized <- tempfile()
   on.exit(unlink(normalized), add = TRUE)
   writeBin(bytes[-crlf], normalized)
@@ -127,8 +135,8 @@
   data.frame(
     path = keep$path,
     hash = keep$package_hash,
-    version = as.character(islh_version()),
-    written = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    version = rep(as.character(islh_version()), nrow(keep)),
+    written = rep(format(.islh_now(), "%Y-%m-%d %H:%M:%S"), nrow(keep)),
     stringsAsFactors = FALSE
   )
 }
@@ -330,12 +338,21 @@ print.islh_project_check <- function(x, ...) {
 #' be told apart without one. Pass `force = TRUE` to replace those too; the
 #' backup is what makes that recoverable.
 #'
-#' Every file that is replaced is copied first into a timestamped folder under
-#' `_islh-backup`, unless `backup = FALSE`.
+#' Every file that is replaced is copied first into a new folder under
+#' `_islh-backup`, unless `backup = FALSE`. Each update gets its own folder,
+#' named for the time it ran, and never writes into an earlier one, so every
+#' backup keeps the files as they were before that update. A backup of a file
+#' you edited is the only copy of that edit outside Git: the package cannot
+#' make it again. To restore a file, copy it from the backup folder back to the
+#' same place in the project.
+#'
+#' An update that changes no files leaves the manifest as it was, so a
+#' project in Git shows no change.
 #'
 #' @param dir Project directory. Defaults to the working directory.
 #' @param dry_run Report what would change and write nothing.
-#' @param backup Copy each replaced file into `_islh-backup` first.
+#' @param backup Copy each replaced file into a new folder under
+#'   `_islh-backup` first.
 #' @param force Also replace files that were edited locally, or that the
 #'   project has no record of installing.
 #' @param quiet Suppress the summary message.
@@ -376,35 +393,54 @@ islh_update_project <- function(
     ifelse(protected, "protected", "skipped")
   )
 
-  backup_dir <- file.path(
-    dir,
-    "_islh-backup",
-    format(Sys.time(), "%Y%m%d-%H%M%S")
-  )
+  backup_dir <- NULL
   backed_up <- character()
 
   if (!dry_run) {
-    for (i in which(replace)) {
-      target <- file.path(dir, status$path[i])
-      if (isTRUE(backup) && file.exists(target)) {
-        .islh_copy(target, file.path(backup_dir, status$path[i]))
-        backed_up <- c(backed_up, status$path[i])
+    previous <- .islh_read_manifest(dir)
+    targets <- file.path(dir, status$path)
+
+    # Back up everything first, so a failed backup stops the update before
+    # any file has been replaced.
+    to_back_up <- which(replace & file.exists(targets))
+    if (backup && length(to_back_up) > 0L) {
+      backup_dir <- .islh_backup_dir(dir)
+      for (i in to_back_up) {
+        .islh_backup_copy(targets[i], file.path(backup_dir, status$path[i]))
       }
-      .islh_copy(assets$source[i], target)
+      backed_up <- status$path[to_back_up]
+    }
+    for (i in which(replace)) {
+      .islh_copy(assets$source[i], targets[i])
     }
 
     # Record the files now known to hold what the package ships, and carry
-    # forward whatever an earlier install recorded for the ones left alone.
-    known <- replace | status$status == "current"
-    entries <- .islh_manifest_entries(assets, status$path[known])
+    # forward whatever an earlier install recorded for the ones left alone. A
+    # current file the manifest already records keeps its row, so an update
+    # that changes nothing leaves the manifest as it was.
+    current <- status$status == "current"
+    recorded <- rep(FALSE, nrow(status))
+    if (!is.null(previous)) {
+      row <- match(status$path, previous$path)
+      recorded <- current &
+        !is.na(row) &
+        !is.na(previous$hash[row]) &
+        previous$hash[row] == assets$package_hash
+    }
+    entries <- .islh_manifest_entries(
+      assets,
+      status$path[replace | (current & !recorded)]
+    )
     carried <- .islh_manifest_carried(
-      .islh_read_manifest(dir),
-      status$path[!known]
+      previous,
+      status$path[!(replace | current) | recorded]
     )
     if (!is.null(carried)) {
       entries <- rbind(entries, carried)
     }
-    .islh_write_manifest(dir, entries)
+    if (!.islh_same_manifest(entries, previous)) {
+      .islh_write_manifest(dir, entries)
+    }
   }
 
   out <- data.frame(
@@ -418,6 +454,56 @@ islh_update_project <- function(
     .islh_report_update(out, dry_run, backup_dir, backed_up, force)
   }
   invisible(out)
+}
+
+# A new folder for this update's backups. The name is the time to the second;
+# a second update within the same second gets a numbered suffix rather than
+# sharing, and so overwriting, the first one's folder. dir.create() fails on
+# a folder that exists, which is what makes the name this update's alone.
+.islh_backup_dir <- function(dir, call = rlang::caller_env()) {
+  root <- file.path(dir, "_islh-backup")
+  .islh_mkdir(root, call = call)
+  stamp <- format(.islh_now(), "%Y%m%d-%H%M%S")
+  for (attempt in seq_len(1000L)) {
+    name <- if (attempt == 1L) stamp else paste0(stamp, "-", attempt)
+    candidate <- file.path(root, name)
+    if (dir.create(candidate, showWarnings = FALSE)) {
+      return(candidate)
+    }
+  }
+  .islh_abort(
+    "Could not create a new backup folder in {.file {root}}.",
+    call = call
+  )
+}
+
+# Copies a file into a backup, refusing to replace anything already there.
+.islh_backup_copy <- function(from, to, call = rlang::caller_env()) {
+  .islh_mkdir(dirname(to), call = call)
+  if (file.exists(to) || !file.copy(from, to, overwrite = FALSE)) {
+    .islh_abort(
+      c(
+        "Could not back up {.file {from}}.",
+        i = "Nothing was replaced. Pass {.code backup = FALSE} only if you
+             have another copy."
+      ),
+      call = call
+    )
+  }
+  invisible(to)
+}
+
+.islh_same_manifest <- function(entries, previous) {
+  if (is.null(previous) || !all(.islh_manifest_columns %in% names(previous))) {
+    return(FALSE)
+  }
+  tidy <- function(x) {
+    x <- x[order(x$path), .islh_manifest_columns, drop = FALSE]
+    rownames(x) <- NULL
+    x[] <- lapply(x, as.character)
+    x
+  }
+  identical(tidy(entries), tidy(previous))
 }
 
 .islh_report_update <- function(out, dry_run, backup_dir, backed_up, force) {

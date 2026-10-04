@@ -187,3 +187,99 @@ test_that("binary files are hashed byte for byte", {
   docx <- islh_reference_docx()
   expect_equal(.islh_hash(docx), unname(tools::md5sum(docx)))
 })
+
+test_that("carriage returns without line feeds are hashed as they stand", {
+  dir <- withr::local_tempdir()
+  write_raw <- function(name, bytes) {
+    path <- file.path(dir, name)
+    writeBin(as.raw(bytes), path)
+    path
+  }
+  md5 <- function(path) unname(tools::md5sum(path))
+  text <- function(x) as.integer(charToRaw(x))
+
+  first <- write_raw("first", text("first\rfile"))
+  second <- write_raw("second", text("second\rfile"))
+  # Both used to hash as an empty file.
+  expect_equal(.islh_hash(first), md5(first))
+  expect_equal(.islh_hash(second), md5(second))
+  expect_false(.islh_hash(first) == .islh_hash(second))
+
+  lone <- write_raw("lone", 13L)
+  empty <- write_raw("empty", integer())
+  expect_equal(.islh_hash(lone), md5(lone))
+  expect_equal(.islh_hash(empty), md5(empty))
+  expect_false(.islh_hash(lone) == .islh_hash(empty))
+
+  # Mixed endings: only the CRLF pairs are normalized.
+  mixed <- write_raw("mixed", text("a\r\nb\rc\n"))
+  normalized <- write_raw("normalized", text("a\nb\rc\n"))
+  expect_equal(.islh_hash(mixed), md5(normalized))
+
+  # Binary content keeps every byte, carriage returns included.
+  binary <- write_raw("binary", c(0L, 13L, 10L, 13L))
+  expect_equal(.islh_hash(binary), md5(binary))
+})
+
+test_that("two updates in the same second keep separate backups", {
+  project <- new_project()
+  brand <- file.path(project, "_brand.yml")
+  local_mocked_bindings(
+    .islh_now = function() as.POSIXct("2026-01-05 09:30:00", tz = "UTC")
+  )
+
+  writeLines("first local edit", brand)
+  islh_update_project(project, force = TRUE, quiet = TRUE)
+  writeLines("second local edit", brand)
+  islh_update_project(project, force = TRUE, quiet = TRUE)
+
+  backups <- list.files(
+    file.path(project, "_islh-backup"),
+    pattern = "_brand.yml",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+  expect_length(backups, 2L)
+  expect_setequal(
+    vapply(backups, readLines, character(1), USE.NAMES = FALSE),
+    c("first local edit", "second local edit")
+  )
+  expect_setequal(
+    basename(dirname(backups)),
+    c("20260105-093000", "20260105-093000-2")
+  )
+})
+
+test_that("a backup never replaces an existing file", {
+  dir <- withr::local_tempdir()
+  from <- file.path(dir, "from")
+  to <- file.path(dir, "to")
+  writeLines("new", from)
+  writeLines("old", to)
+  expect_error(.islh_backup_copy(from, to), "Could not back up")
+  expect_equal(readLines(to), "old")
+})
+
+test_that("an update that changes nothing leaves the manifest alone", {
+  local_mocked_bindings(
+    .islh_now = function() as.POSIXct("2026-01-05 09:30:00", tz = "UTC")
+  )
+  project <- new_project()
+  manifest <- file.path(project, "_islh-manifest.csv")
+  before <- readLines(manifest)
+
+  local_mocked_bindings(
+    .islh_now = function() as.POSIXct("2026-02-01 10:00:00", tz = "UTC")
+  )
+  islh_update_project(project, quiet = TRUE)
+  expect_equal(readLines(manifest), before)
+
+  # A replaced file gets a new row; the others keep theirs.
+  unlink(file.path(project, "_brand.yml"))
+  islh_update_project(project, quiet = TRUE)
+  after <- utils::read.csv(manifest, colClasses = "character")
+  expect_equal(after$written[after$path == "_brand.yml"], "2026-02-01 10:00:00")
+  expect_true(all(
+    after$written[after$path != "_brand.yml"] == "2026-01-05 09:30:00"
+  ))
+})

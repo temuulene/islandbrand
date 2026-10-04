@@ -195,3 +195,116 @@ test_that("the RStudio project template builds a project", {
   # A blank author box leaves the field out rather than writing it empty.
   expect_false(any(grepl("^author:", report)))
 })
+
+test_that("hidden files make a directory non-empty", {
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "existing")
+  dir.create(path)
+  writeLines("private-data/", file.path(path, ".gitignore"))
+  before <- tools::md5sum(file.path(path, ".gitignore"))
+
+  expect_error(
+    islh_create_report(path),
+    "already has files",
+    class = "islh_error"
+  )
+  expect_equal(tools::md5sum(file.path(path, ".gitignore")), before)
+  # Nothing else was written before the refusal.
+  expect_equal(list.files(path, all.files = TRUE, no.. = TRUE), ".gitignore")
+
+  dir.create(file.path(path, ".git"))
+  expect_error(islh_create_report(path), ".git")
+})
+
+test_that("overwriting names the files it replaced", {
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "existing")
+  dir.create(path)
+  writeLines("private-data/", file.path(path, ".gitignore"))
+  writeLines("notes", file.path(path, "notes.txt"))
+
+  expect_message(
+    islh_create_report(path, overwrite = TRUE),
+    "Replaced 1 file"
+  )
+  expect_equal(readLines(file.path(path, "notes.txt")), "notes")
+})
+
+test_that("the scaffold checks every target before writing any", {
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "existing")
+  dir.create(file.path(path, "report.qmd"), recursive = TRUE)
+
+  expect_error(
+    islh_create_report(path, overwrite = TRUE),
+    "report.qmd",
+    class = "islh_error"
+  )
+  expect_equal(list.files(path, all.files = TRUE, no.. = TRUE), "report.qmd")
+
+  file <- file.path(dir, "a-file")
+  writeLines("x", file)
+  expect_error(islh_create_report(file), "is a file")
+})
+
+test_that("the scaffold checks its switches", {
+  path <- file.path(withr::local_tempdir(), "flags")
+  expect_error(islh_create_report(path, overwrite = NA), "TRUE or FALSE")
+  expect_error(islh_create_report(path, rproj = "yes"), "TRUE or FALSE")
+  expect_error(islh_create_report(path, example_data = 1), "TRUE or FALSE")
+  expect_false(dir.exists(path))
+})
+
+test_that("Git keeps the Word template and leaves rendered output out", {
+  skip_if(!nzchar(Sys.which("git")), "Git is not installed")
+  path <- scaffold("both")
+  git <- function(dir, ...) {
+    suppressWarnings(system2(
+      "git",
+      c(
+        "-C",
+        shQuote(dir),
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@example.com",
+        "-c",
+        "commit.gpgsign=false",
+        ...
+      ),
+      stdout = TRUE,
+      stderr = TRUE
+    ))
+  }
+  ignored <- function(file) {
+    status <- attr(git(path, "check-ignore", "-q", shQuote(file)), "status")
+    identical(status, NULL) || identical(status, 0L)
+  }
+
+  git(path, "init", "-q")
+  expect_false(ignored(
+    "_extensions/islh/islh-report/islh-report-reference.docx"
+  ))
+  expect_true(ignored("report.docx"))
+  expect_true(ignored("report.html"))
+  expect_true(ignored("report_files/figure.png"))
+  expect_true(ignored("_islh-backup/20260104-120000/_brand.yml"))
+
+  git(path, "add", "-A")
+  git(path, "commit", "-q", "-m", shQuote("Start the report"))
+  clone <- file.path(withr::local_tempdir(), "clone")
+  out <- suppressWarnings(system2(
+    "git",
+    c("clone", "-q", shQuote(path), shQuote(clone)),
+    stdout = TRUE,
+    stderr = TRUE
+  ))
+  expect_null(attr(out, "status"))
+
+  # Every file the package installs arrives in a fresh clone, unchanged.
+  check <- islh_check_project(clone, quiet = TRUE)
+  expect_true(all(check$status == "current"))
+  for (file in c("_quarto.yml", "report.qmd", "_islh-manifest.csv")) {
+    expect_true(file.exists(file.path(clone, file)), label = file)
+  }
+})

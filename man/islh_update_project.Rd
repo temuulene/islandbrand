@@ -17,7 +17,8 @@ islh_update_project(
 
 \item{dry_run}{Report what would change and write nothing.}
 
-\item{backup}{Copy each replaced file into \verb{_islh-backup} first.}
+\item{backup}{Copy each replaced file into a new folder under
+\verb{_islh-backup} first.}
 
 \item{force}{Also replace files that were edited locally, or that the
 project has no record of installing.}
@@ -40,8 +41,16 @@ project has no record of installing, since an edit and an old version cannot
 be told apart without one. Pass \code{force = TRUE} to replace those too; the
 backup is what makes that recoverable.
 
-Every file that is replaced is copied first into a timestamped folder under
-\verb{_islh-backup}, unless \code{backup = FALSE}.
+Every file that is replaced is copied first into a new folder under
+\verb{_islh-backup}, unless \code{backup = FALSE}. Each update gets its own folder,
+named for the time it ran, and never writes into an earlier one, so every
+backup keeps the files as they were before that update. A backup of a file
+you edited is the only copy of that edit outside Git: the package cannot
+make it again. To restore a file, copy it from the backup folder back to the
+same place in the project.
+
+An update that changes no files leaves the manifest as it was, so a
+project in Git shows no change.
 }
 \examples{
 project <- file.path(tempdir(), "update-example")
