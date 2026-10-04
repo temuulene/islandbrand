@@ -94,7 +94,10 @@ GREY_85 = _ramp("grey", 85)           # table borders
 # Body/caption/footer greys are chosen to satisfy the brand's own contrast
 # rule: text below 18px needs a 70+ colour-value difference from its
 # background. Against white (value 100) that means value 30 or darker, which
-# rules out the mid greys for 9pt caption and footer text.
+# rules out the mid greys for 9pt caption and footer text. Measured as WCAG
+# ratios, which is what the 4.5:1 text minimum is stated in: Grey 20 on white
+# is 13.5:1, Grey 30 on white 9.4:1, and Grey 30 on the Blue 96 header band
+# 8.6:1.
 
 LOGO_WIDTH_IN = 1.9
 

@@ -7,9 +7,11 @@
 islh_area_labels(size = 4)
 }
 \arguments{
-\item{size}{Text size in millimetres, as for \code{\link[ggplot2:geom_text]{ggplot2::geom_text()}}. Codes
-inside a fill meet the brand's large-text contrast in bold at about 4 mm
-(11 to 12 points) and above; the default is 4.}
+\item{size}{Text size in millimetres, as for \code{\link[ggplot2:geom_text]{ggplot2::geom_text()}}. The
+default of 4 mm is about 11 points. Codes do not rely on being large:
+each sits on its area's fill in its \code{label_colour}, or on the white page
+in Grey 10, and every pair reaches 4.5:1, the WCAG minimum for text of
+any size.}
 }
 \value{
 A list of ggplot2 layers to add to a map with \code{+}.

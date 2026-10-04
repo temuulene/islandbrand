@@ -65,8 +65,11 @@ typography:
   headings:
     family: BC Sans
     weight: 700
+  # Links use Blue 30, not the primary Blue 50: Blue 50 on white is 4.45:1,
+  # short of the 4.5:1 body text needs, and Blue 30 is 9.4:1. It also matches
+  # the hyperlink colour of the Word template's Office theme.
   link:
-    color: primary
+    color: blue-dark
 
 logo:
   # Paths are relative to this file. islh_use_brand() copies these alongside

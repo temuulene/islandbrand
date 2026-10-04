@@ -59,14 +59,84 @@ test_that("each HSDA uses one low-signal family and every fill is dark enough", 
     c("blue", "cedar", "thistle")
   )
 
-  # Graphics need 30 values of contrast with a white page.
-  expect_true(all(found$value <= 70))
+  # Fills run from value 20 to 70, so lines 10 values darker stay in the ramp.
+  expect_true(all(found$value >= 20 & found$value <= 70))
+})
 
-  # Large labels need 50: every fill is white-text dark or Grey 10-text light.
-  expect_true(all(found$value <= 50 | found$value >= 60))
-  expect_equal(
-    lha$label_colour,
-    ifelse(found$value <= 50, "#FFFFFF", islh_hex("grey", 10))
+# Ratios are thresholds: 4.4519 fails 4.5, so nothing here is rounded.
+test_that("every area label reaches 4.5:1 on its fill", {
+  for (level in c("lha", "hsda")) {
+    areas <- islh_areas(level)
+    ratio <- .islh_contrast_ratio(areas$label_colour, areas$colour)
+    expect_true(all(ratio >= 4.5), label = paste(level, "label contrast"))
+    expect_true(all(
+      areas$label_colour %in% c("#FFFFFF", islh_hex("grey", 10))
+    ))
+  }
+  # The pair the review measured at 4.4519:1 is no longer used.
+  hsda <- islh_areas("hsda")
+  expect_false(islh_hex("blue", 50) %in% hsda$colour)
+})
+
+test_that("every area line reaches 3:1 on a white page", {
+  for (level in c("lha", "hsda")) {
+    areas <- islh_areas(level)
+    ratio <- .islh_contrast_ratio(areas$line_colour, "white")
+    expect_true(all(ratio >= 3), label = paste(level, "line contrast"))
+    found <- value_of(areas$line_colour)
+    expect_equal(found$value, value_of(areas$colour)$value - 10)
+    expect_equal(found$family, value_of(areas$colour)$family)
+  }
+  # The lightest fills alone would not: these three measure 2.26 to 2.42.
+  pale <- islh_areas()$colour[islh_areas()$code %in% c("413", "422", "432")]
+  expect_true(all(.islh_contrast_ratio(pale, "white") < 3))
+})
+
+test_that("lines and points use the darker line colours", {
+  data <- data.frame(area = c("Saanich Peninsula", "421"), y = 1)
+  plot <- ggplot2::ggplot(data, ggplot2::aes(area, y, colour = area)) +
+    ggplot2::geom_point() +
+    scale_colour_islh_area()
+  areas <- islh_areas()
+  expect_setequal(
+    ggplot2::ggplot_build(plot)$data[[1]]$colour,
+    areas$line_colour[areas$code %in% c("413", "421")]
+  )
+})
+
+test_that("area scales accept breaks and limits", {
+  data <- data.frame(
+    area = c("Greater Victoria", "Oceanside", "Comox Valley"),
+    y = 1
+  )
+  base <- ggplot2::ggplot(data, ggplot2::aes(area, y, fill = area)) +
+    ggplot2::geom_col()
+
+  shown <- c("Oceanside", "Greater Victoria")
+  plot <- base + scale_fill_islh_area(breaks = shown)
+  expect_equal(ggplot2::get_guide_data(plot, "fill")$.label, shown)
+
+  plot <- base + scale_fill_islh_area(limits = shown)
+  fills <- suppressWarnings(ggplot2::ggplot_build(plot)$data[[1]]$fill)
+  areas <- islh_areas()
+  expect_setequal(
+    fills,
+    c(areas$colour[areas$name %in% shown], .islh_map_missing())
+  )
+
+  # A typo in limits warns, as it does in the data.
+  expect_warning(
+    scale_fill_islh_area(limits = c("Oceansid", "Comox Valley")),
+    "Oceansid"
+  )
+  expect_error(
+    scale_fill_islh_area(values = c(Oceanside = "red")),
+    "cannot be changed",
+    class = "islh_error"
+  )
+  expect_error(
+    scale_colour_islh_area(aesthetics = "fill"),
+    "cannot be changed"
   )
 })
 
@@ -90,12 +160,14 @@ test_that("neighbouring areas are far apart in value", {
   expect_true(all(tapply(value, hsda, function(v) !anyDuplicated(v))))
 })
 
-test_that("HSDA colours are the representative colour of each family", {
+test_that("HSDA colours come from each HSDA's family", {
   hsda <- islh_areas("hsda")
   expect_equal(hsda$code, c("41", "42", "43"))
+  # South is Blue 45 rather than the primary Blue 50, so white labels on it
+  # reach 4.5:1.
   expect_equal(
     hsda$colour,
-    c(islh_hex("blue", 50), islh_hex("cedar", 60), islh_hex("thistle", 50))
+    c(islh_hex("blue", 45), islh_hex("cedar", 60), islh_hex("thistle", 50))
   )
 })
 

@@ -11,11 +11,17 @@ islh_areas(level = c("lha", "hsda"))
 delivery areas.}
 }
 \value{
-A data frame in code order with columns \code{code}, \code{name}, \code{colour}
-and \code{label_colour}, plus \code{hsda} for LHAs. \code{label_colour} is white or
-Grey 10, whichever meets the brand's contrast for large text (18 px, or
-about 14 pt, and preferably bold) on \code{colour}. Smaller labels belong
-outside the shape.
+A data frame in code order with columns \code{code}, \code{name}, \code{colour},
+\code{label_colour} and \code{line_colour}, plus \code{hsda} for LHAs.
+\itemize{
+\item \code{colour} is the fill for a map or a bar.
+\item \code{label_colour} is white or Grey 10, whichever contrasts more with
+\code{colour}. Every pair reaches at least 4.5:1, the WCAG minimum for text
+of any size, so a label can sit inside the shape.
+\item \code{line_colour} is \code{colour} 10 values darker. Every one reaches at least
+3:1 against a white page, the WCAG minimum for a line a reader needs
+to see. \code{\link[=scale_colour_islh_area]{scale_colour_islh_area()}} uses it.
+}
 }
 \description{
 Returns the brand colour for each of Island Health's 3 health service

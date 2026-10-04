@@ -16,10 +16,20 @@
 # boundaries. Neighbours within an HSDA differ by at least 20 values, and
 # neighbours across HSDAs by at least 10 as well as in hue. South and North
 # never touch, which keeps Blue and Thistle, the pair protanopia confuses most,
-# apart on every map. Every value is 70 or darker, so each fill clears the
-# brand's 30-value contrast for graphics on white. None falls between 50 and
-# 60, so each fill carries large text in white (50 or below) or Grey 10 (60 or
-# above).
+# apart on every map.
+#
+# Contrast is measured, not inferred from the values. Brand value differences
+# do not translate exactly into WCAG ratios: Blue 50 on white is 4.45:1, just
+# short of the 4.5:1 that text needs.
+#
+# * Labels: islh_areas() picks white or Grey 10, whichever contrasts more with
+#   the fill. Every pair reaches 4.5:1, enough for text of any size. South
+#   Vancouver Island is Blue 45 rather than Blue 50 for this reason.
+# * Lines: the lightest fills (value 70) are about 2.3:1 on white, below the
+#   3:1 a line needs to be seen. Lines use a colour 10 values darker than the
+#   fill, which keeps the steps between areas and reaches 3:1 for all of them.
+# * Fills: on a map, areas meet each other more than the page, are outlined,
+#   and are labelled, so colour against white is not the only cue.
 #
 # Codes and names are the BC Data Catalogue's Local Health Area boundaries.
 
@@ -31,7 +41,7 @@
     "North Vancouver Island"
   ),
   family = c("blue", "cedar", "thistle"),
-  value = c(50, 60, 50),
+  value = c(45, 60, 50),
   stringsAsFactors = FALSE
 )
 
@@ -98,11 +108,16 @@
 #' @param level `"lha"` for local health areas or `"hsda"` for health service
 #'   delivery areas.
 #'
-#' @return A data frame in code order with columns `code`, `name`, `colour`
-#'   and `label_colour`, plus `hsda` for LHAs. `label_colour` is white or
-#'   Grey 10, whichever meets the brand's contrast for large text (18 px, or
-#'   about 14 pt, and preferably bold) on `colour`. Smaller labels belong
-#'   outside the shape.
+#' @return A data frame in code order with columns `code`, `name`, `colour`,
+#'   `label_colour` and `line_colour`, plus `hsda` for LHAs.
+#'
+#'   * `colour` is the fill for a map or a bar.
+#'   * `label_colour` is white or Grey 10, whichever contrasts more with
+#'     `colour`. Every pair reaches at least 4.5:1, the WCAG minimum for text
+#'     of any size, so a label can sit inside the shape.
+#'   * `line_colour` is `colour` 10 values darker. Every one reaches at least
+#'     3:1 against a white page, the WCAG minimum for a line a reader needs
+#'     to see. [scale_colour_islh_area()] uses it.
 #'
 #' @seealso [scale_fill_islh_area()] to use the colours in a plot.
 #'
@@ -136,12 +151,20 @@ islh_areas <- function(level = c("lha", "hsda")) {
   }
 
   areas$colour <- mapply(islh_hex, areas$family, areas$value, USE.NAMES = FALSE)
-  # Large text needs a 50-value difference: white (100) on 50 or darker,
-  # Grey 10 on 60 or lighter.
+  # Whichever of white and Grey 10 contrasts more with the fill, measured.
+  white <- islh_brand("white")
+  dark <- islh_hex("grey", 10)
   areas$label_colour <- ifelse(
-    areas$value <= 50,
-    islh_brand("white"),
-    islh_hex("grey", 10)
+    .islh_contrast_ratio(white, areas$colour) >=
+      .islh_contrast_ratio(dark, areas$colour),
+    white,
+    dark
+  )
+  areas$line_colour <- mapply(
+    islh_hex,
+    areas$family,
+    areas$value - 10,
+    USE.NAMES = FALSE
   )
 
   columns <- c(
@@ -149,7 +172,8 @@ islh_areas <- function(level = c("lha", "hsda")) {
     "name",
     if (level == "lha") "hsda",
     "colour",
-    "label_colour"
+    "label_colour",
+    "line_colour"
   )
   out <- areas[columns]
   rownames(out) <- NULL
@@ -157,11 +181,12 @@ islh_areas <- function(level = c("lha", "hsda")) {
 }
 
 # Every key a scale matches, name or code or alias, to its colour, with the
-# official names first so the legend lists them in code order.
-.islh_area_values <- function(level) {
+# official names first so the legend lists them in code order. `column` is
+# "colour" for fills and "line_colour" for lines and points.
+.islh_area_values <- function(level, column = "colour") {
   areas <- islh_areas(level)
-  by_name <- stats::setNames(areas$colour, areas$name)
-  by_code <- stats::setNames(areas$colour, areas$code)
+  by_name <- stats::setNames(areas[[column]], areas$name)
+  by_code <- stats::setNames(areas[[column]], areas$code)
   values <- c(by_name, by_code)
   if (level == "lha") {
     aliases <- stats::setNames(
@@ -199,16 +224,50 @@ islh_areas <- function(level = c("lha", "hsda")) {
   }
 }
 
-.islh_area_scale <- function(aesthetic, level, na.value, ...) {
-  values <- .islh_area_values(level)
-  ggplot2::scale_fill_manual(
-    ...,
+.islh_area_scale <- function(
+  aesthetic,
+  level,
+  na.value,
+  ...,
+  call = rlang::caller_env()
+) {
+  column <- if (aesthetic == "fill") "colour" else "line_colour"
+  values <- .islh_area_values(level, column)
+  keys <- names(values)
+  dots <- list(...)
+
+  fixed <- intersect(names(dots), c("values", "aesthetics"))
+  if (length(fixed) > 0L) {
+    .islh_abort(
+      c(
+        "{.arg {fixed}} cannot be changed in an Island Health area scale.",
+        i = "The scale sets each area's colour itself. For other colours, use
+             {.fn ggplot2::scale_fill_manual} or
+             {.fn ggplot2::scale_colour_manual}."
+      ),
+      call = call
+    )
+  }
+
+  # Breaks and limits may be set to show or keep only some areas. Names given
+  # there are checked like the data, so a typo still warns rather than
+  # quietly dropping an area.
+  check_limits <- .islh_area_limits(level, keys)
+  for (arg in intersect(names(dots), c("breaks", "limits"))) {
+    if (is.character(dots[[arg]])) {
+      check_limits(dots[[arg]])
+    }
+  }
+
+  defaults <- list(
     values = values,
-    breaks = names(values),
-    limits = .islh_area_limits(level, names(values)),
+    breaks = keys,
+    limits = check_limits,
     na.value = na.value,
     aesthetics = aesthetic
   )
+  args <- c(dots, defaults[setdiff(names(defaults), names(dots))])
+  do.call(ggplot2::scale_fill_manual, args)
 }
 
 #' Island Health colours for local health areas and HSDAs
@@ -222,6 +281,10 @@ islh_areas <- function(level = c("lha", "hsda")) {
 #' A value that matches no area is drawn in `na.value`, with a warning naming
 #' it.
 #'
+#' The fill scale uses each area's `colour` from [islh_areas()]. The colour
+#' scale, meant for lines and points, uses its `line_colour`, 10 values
+#' darker, so even the lightest areas reach 3:1 against a white page.
+#'
 #' Colour alone cannot identify 14 areas. Label them as well, on the map or at
 #' the end of each line; the brand standard requires a cue besides colour when
 #' colour carries meaning.
@@ -229,7 +292,10 @@ islh_areas <- function(level = c("lha", "hsda")) {
 #' @param level `"lha"` for local health areas or `"hsda"` for health service
 #'   delivery areas.
 #' @param ... Additional arguments passed to `ggplot2::scale_fill_manual()` or
-#'   `ggplot2::scale_colour_manual()`, such as `name` or `guide`.
+#'   `ggplot2::scale_colour_manual()`, such as `name`, `guide`, `breaks` or
+#'   `limits`. `breaks` and `limits` replace the defaults, which list every
+#'   area in code order; names in them are checked against the areas, like
+#'   the data. `values` and `aesthetics` are fixed by the scale.
 #' @param na.value Colour for missing or unmatched areas.
 #'
 #' @return A ggplot2 discrete scale.
@@ -399,9 +465,11 @@ scale_color_islh_area <- scale_colour_islh_area
 #' or more. On a map zoomed to part of it, such as an inset, label the areas
 #' yourself.
 #'
-#' @param size Text size in millimetres, as for [ggplot2::geom_text()]. Codes
-#'   inside a fill meet the brand's large-text contrast in bold at about 4 mm
-#'   (11 to 12 points) and above; the default is 4.
+#' @param size Text size in millimetres, as for [ggplot2::geom_text()]. The
+#'   default of 4 mm is about 11 points. Codes do not rely on being large:
+#'   each sits on its area's fill in its `label_colour`, or on the white page
+#'   in Grey 10, and every pair reaches 4.5:1, the WCAG minimum for text of
+#'   any size.
 #'
 #' @return A list of ggplot2 layers to add to a map with `+`.
 #'

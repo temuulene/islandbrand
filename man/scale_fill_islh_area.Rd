@@ -29,7 +29,10 @@ scale_color_islh_area(
 delivery areas.}
 
 \item{...}{Additional arguments passed to \code{ggplot2::scale_fill_manual()} or
-\code{ggplot2::scale_colour_manual()}, such as \code{name} or \code{guide}.}
+\code{ggplot2::scale_colour_manual()}, such as \code{name}, \code{guide}, \code{breaks} or
+\code{limits}. \code{breaks} and \code{limits} replace the defaults, which list every
+area in code order; names in them are checked against the areas, like
+the data. \code{values} and \code{aesthetics} are fixed by the scale.}
 
 \item{na.value}{Colour for missing or unmatched areas.}
 }
@@ -46,6 +49,10 @@ which groups LHAs by HSDA.
 \details{
 A value that matches no area is drawn in \code{na.value}, with a warning naming
 it.
+
+The fill scale uses each area's \code{colour} from \code{\link[=islh_areas]{islh_areas()}}. The colour
+scale, meant for lines and points, uses its \code{line_colour}, 10 values
+darker, so even the lightest areas reach 3:1 against a white page.
 
 Colour alone cannot identify 14 areas. Label them as well, on the map or at
 the end of each line; the brand standard requires a cue besides colour when

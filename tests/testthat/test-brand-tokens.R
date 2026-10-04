@@ -97,3 +97,17 @@ test_that("the example data has the columns the scaffold expects", {
   expect_named(data, c("program", "encounters", "median_wait_minutes"))
   expect_gt(nrow(data), 0L)
 })
+
+test_that("_brand.yml links reach 4.5:1 on the page", {
+  skip_if_not_installed("yaml")
+  brand <- yaml::read_yaml(islh_brand_yml())
+  palette <- brand$color$palette
+  # Swatch names resolve through the palette; anything else is a colour.
+  resolve <- function(x) palette[[x]] %||% x
+  link <- resolve(brand$typography$link$color)
+  page <- resolve(brand$color$background)
+
+  # Unrounded: the primary Blue 50 measures 4.4519:1 and must fail.
+  expect_gte(.islh_contrast_ratio(link, page), 4.5)
+  expect_lt(.islh_contrast_ratio(palette$blue, page), 4.5)
+})
