@@ -17,6 +17,15 @@ permissions: read-all
 jobs:
   render:
     runs-on: ubuntu-latest
+    name: render (Quarto ${{ matrix.quarto }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # The current release, and the oldest version the extension accepts
+        # (quarto-required in _extension.yml), so the declared floor is tested.
+        quarto: ['release', '1.6.39']
+
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
@@ -26,6 +35,8 @@ jobs:
       - uses: r-lib/actions/setup-pandoc@v2
 
       - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: ${{ matrix.quarto }}
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -67,10 +78,31 @@ jobs:
             || { echo "letterhead header missing"; exit 1; }
         shell: bash
 
+      # A colleague gets the project from Git, not from the folder it was
+      # made in. Commit it, clone it, and render the clone: anything the
+      # .gitignore leaves out, such as the Word template, fails here.
+      - name: Render a fresh clone of a committed project
+        run: |
+          Rscript -e "islandbrand::islh_create_report('from-git', format = 'both')"
+          git -C from-git init -q
+          git -C from-git add -A
+          git -C from-git -c user.name=CI -c user.email=ci@example.com \
+            commit -q -m "Start the report"
+          git clone -q from-git cloned
+          git -C cloned ls-files --error-unmatch \
+            _extensions/islh/islh-report/islh-report-reference.docx
+          (cd cloned && quarto render report.qmd)
+          test -s cloned/report.docx || { echo "no DOCX from the clone"; exit 1; }
+          test -s cloned/report.html || { echo "no HTML from the clone"; exit 1; }
+          unzip -l cloned/report.docx | grep -q "word/header1.xml" \
+            || { echo "the clone lost the Word template"; exit 1; }
+          Rscript -e "stopifnot(all(islandbrand::islh_check_project('cloned', quiet = TRUE)\$status == 'current'))"
+        shell: bash
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rendered-reports
+          name: rendered-reports-quarto-${{ matrix.quarto }}
           path: |
             check-html/report.html
             check-docx/report.docx

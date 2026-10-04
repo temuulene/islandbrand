@@ -18,7 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          # Windows is the platform Island Health staff actually use.
+          # Windows is the platform Island Health staff actually use, and
+          # 4.4.1 the approved R version there.
+          - {os: windows-latest, r: '4.4.1'}
           - {os: windows-latest, r: 'release'}
           - {os: macos-latest,   r: 'release'}
           - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}

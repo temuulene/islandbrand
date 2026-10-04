@@ -1,11 +1,11 @@
 # Builds installable copies of the package on every tag and attaches them to
-# the release.
+# the release, but only once every build has passed its check.
 #
-# Staff who cannot reach GitHub from R install from these instead: download the
-# .zip and run install.packages("path/to/islandbrand_x.y.z.zip", repos = NULL).
-
+# Staff who cannot reach GitHub from R install from these instead: the
+# packages islandbrand is built on first, then the .zip. See the README.
+#
 # Tag-driven only. A manual run has no tag to attach assets to, so the
-# release step would have nowhere to put them.
+# publish job would have nowhere to put them.
 on:
   push:
     tags: ['v*']
@@ -18,13 +18,15 @@ permissions:
 jobs:
   build:
     runs-on: ${{ matrix.config.os }}
+    name: build (${{ matrix.config.os }})
 
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {os: windows-latest, artifact: zip}
-          - {os: ubuntu-latest,  artifact: tar.gz}
+          # The Windows binary is built and checked on the R staff use.
+          - {os: windows-latest, r: '4.4.1', artifact: zip}
+          - {os: ubuntu-latest, r: 'release', artifact: tar.gz}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -36,7 +38,6 @@ jobs:
       # are named for a different version than the tag says. Catch it here
       # rather than after staff have downloaded it.
       - name: Check the tag matches DESCRIPTION
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           tag="${GITHUB_REF#refs/tags/v}"
           described=$(grep '^Version:' DESCRIPTION | sed 's/Version: *//')
@@ -51,6 +52,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r@v2
         with:
+          r-version: ${{ matrix.config.r }}
           use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
@@ -58,23 +60,152 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
 
-      # Build the source package on both runners. R CMD build knits the
-      # vignettes into inst/doc; installing straight from the checkout would
-      # leave the Windows binary without them.
+      # Tests, examples and vignettes must pass before anything is built for
+      # release. A tag whose tests fail publishes nothing.
+      - name: Require a clean package check
+        run: rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning")
+        shell: Rscript {0}
+
+      # R CMD build knits the vignettes into inst/doc; installing straight
+      # from the checkout would leave the Windows binary without them.
       - name: Build source package
         run: R CMD build .
         shell: bash
 
       # A Windows binary is what a locked-down laptop can install without a
-      # compiler and without reaching CRAN.
+      # compiler.
       - name: Build Windows binary
         if: matrix.config.artifact == 'zip'
         run: R CMD INSTALL --build islandbrand_*.tar.gz
         shell: bash
 
-      # Each runner uploads only its own kind of file, so the two jobs never
-      # attach the same file name to the release.
+      # Record the exact dependency versions the Windows binary was built and
+      # checked with, so a staff deployment can reproduce them.
+      - name: Write the Windows dependency manifest
+        if: matrix.config.artifact == 'zip'
+        shell: Rscript {0}
+        run: |
+          version <- read.dcf("DESCRIPTION")[1, "Version"]
+          installed <- utils::installed.packages()
+          deps <- tools::package_dependencies(
+            "islandbrand",
+            db = installed,
+            which = c("Depends", "Imports", "LinkingTo"),
+            recursive = TRUE
+          )[[1]]
+          base <- rownames(utils::installed.packages(priority = "base"))
+          deps <- sort(setdiff(deps, base))
+          manifest <- data.frame(
+            package = c("R", "islandbrand", deps),
+            version = c(
+              paste(R.version$major, R.version$minor, sep = "."),
+              version,
+              installed[deps, "Version"]
+            )
+          )
+          utils::write.csv(
+            manifest,
+            sprintf("islandbrand_%s_windows-dependencies.csv", version),
+            row.names = FALSE
+          )
+
+      # Install the binary the way the README tells staff to: an empty
+      # library, the packages islandbrand is built on from CRAN binaries, then
+      # the .zip. Then load it, confirm the vignettes are inside, install the
+      # HTML and Word stacks with islh_install_deps(), and draw a figure and a
+      # table.
+      - name: Clean install by the README route
+        if: matrix.config.artifact == 'zip'
+        shell: bash
+        run: |
+          clean="$RUNNER_TEMP/clean-library"
+          mkdir -p "$clean"
+          R_LIBS="" R_LIBS_SITE="" R_LIBS_USER="$clean" Rscript --vanilla -e '
+            options(repos = c(CRAN = "https://cloud.r-project.org"))
+            lib <- Sys.getenv("R_LIBS_USER")
+            .libPaths(c(lib, .libPaths()))
+            version <- read.dcf("DESCRIPTION")[1, "Version"]
+
+            # The README command must name every import, or a staff install
+            # cannot load the package.
+            imports <- read.dcf("DESCRIPTION", fields = "Imports")[1, 1]
+            imports <- trimws(sub("\\(.*", "", strsplit(imports, ",")[[1]]))
+            base <- rownames(installed.packages(priority = "base"))
+            imports <- sort(setdiff(imports, base))
+            readme <- paste(readLines("README.md"), collapse = "\n")
+            command <- regmatches(
+              readme,
+              regexpr("install\\.packages\\(\\s*c\\([^)]*\\)", readme)
+            )
+            listed <- sort(regmatches(
+              command,
+              gregexpr("(?<=\")[^\",]+(?=\")", command, perl = TRUE)
+            )[[1]])
+            if (!identical(listed, imports)) {
+              stop("README installs ", toString(listed),
+                   " but the imports are ", toString(imports))
+            }
+
+            install.packages(listed, lib = lib, type = "binary")
+            install.packages(
+              Sys.glob("islandbrand_*.zip"),
+              lib = lib,
+              repos = NULL,
+              type = "win.binary"
+            )
+            stopifnot(
+              as.character(packageVersion("islandbrand", lib.loc = lib)) == version
+            )
+            library(islandbrand, lib.loc = lib)
+            docs <- dir(system.file("doc", package = "islandbrand"), "html$")
+            if (length(docs) < 5L) stop("The binary is missing its vignettes.")
+
+            islh_install_deps("both")
+            for (format in c("html", "docx")) {
+              if (!islh_check(format, quiet = TRUE)$ok) {
+                stop("Not ready for ", format, " after islh_install_deps().")
+              }
+            }
+            # islh_save_plot() needs ragg, which the guide installs this way.
+            install.packages("ragg", lib = lib, type = "binary")
+            islh_setup(format = "html", quiet = TRUE)
+            plot <- islh_epi_curve(
+              data.frame(week = as.Date("2026-01-04") + 7 * 0:3, n = c(1, 3, 2, 0)),
+              week,
+              n
+            )
+            path <- tempfile(fileext = ".png")
+            islh_save_plot(path, plot)
+            stopifnot(file.size(path) > 0)
+            invisible(islh_gt(islh_example_data()))
+            invisible(islh_flextable(islh_example_data()))
+            message("islandbrand ", version, " installed, loaded and checked.")
+          '
+
+      # Each runner uploads only its own kind of file, so the publish job never
+      # receives two copies of the source package.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.config.artifact }}
+          path: |
+            *.${{ matrix.config.artifact }}
+            *_windows-dependencies.csv
+          if-no-files-found: error
+
+  # Runs only when every build job above passed, so one runner cannot publish
+  # while the other fails.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          files: '*.${{ matrix.config.artifact }}'
+          files: |
+            *.tar.gz
+            *.zip
+            *_windows-dependencies.csv
           fail_on_unmatched_files: true
