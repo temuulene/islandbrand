@@ -30,7 +30,7 @@ Suggests:
     flextable (>= 0.9.10),
     ggnewscale,
     gt,
-    gtsummary (>= 2.0.0),
+    gtsummary (>= 2.0.3),
     htmltools,
     knitr,
     officer,

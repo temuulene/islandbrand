@@ -15,15 +15,21 @@ DOCX renders; outside a render it selects plot-only setup. \code{"both"}
 installs the HTML and Word stacks together, for a project that renders to
 either.}
 
-\item{quiet}{Suppress the status message.}
+\item{quiet}{Suppress the status messages. A warning that packages are
+still not ready after installing is given either way.}
 }
 \value{
-The packages installed, invisibly.
+The packages it tried to install, invisibly. After installing, it
+checks again and warns if any of them is still missing or out of date.
 }
 \description{
 Installs whatever \code{\link[=islh_check]{islh_check()}} reports as missing or out of date.
 }
 \details{
+It cannot install the packages \code{islandbrand} itself is built on (cli,
+ggplot2, rlang, scales and systemfonts): R loads those before this function
+can run. Install them with base R first, as the README shows.
+
 Island Health laptops block programs run from a user library, which breaks
 installers that unpack with their own helper binary (\code{pak} is the usual
 one), and they have no compiler, so a source build fails too. This uses base

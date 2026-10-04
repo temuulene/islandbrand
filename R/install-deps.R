@@ -2,6 +2,10 @@
 #'
 #' Installs whatever [islh_check()] reports as missing or out of date.
 #'
+#' It cannot install the packages `islandbrand` itself is built on (cli,
+#' ggplot2, rlang, scales and systemfonts): R loads those before this function
+#' can run. Install them with base R first, as the README shows.
+#'
 #' Island Health laptops block programs run from a user library, which breaks
 #' installers that unpack with their own helper binary (`pak` is the usual
 #' one), and they have no compiler, so a source build fails too. This uses base
@@ -13,9 +17,11 @@
 #'   DOCX renders; outside a render it selects plot-only setup. `"both"`
 #'   installs the HTML and Word stacks together, for a project that renders to
 #'   either.
-#' @param quiet Suppress the status message.
+#' @param quiet Suppress the status messages. A warning that packages are
+#'   still not ready after installing is given either way.
 #'
-#' @return The packages installed, invisibly.
+#' @return The packages it tried to install, invisibly. After installing, it
+#'   checks again and warns if any of them is still missing or out of date.
 #' @export
 #'
 #' @examples
@@ -26,6 +32,7 @@ islh_install_deps <- function(
   quiet = FALSE
 ) {
   format <- match.arg(format)
+  quiet <- .islh_check_flag(quiet, "quiet")
 
   # A project that renders to both formats needs both table stacks. Checking
   # only one leaves the other render to fail at the table chunk.
@@ -71,21 +78,25 @@ islh_install_deps <- function(
   # of any of those is not in effect yet.
   loaded <- intersect(wanted, loadedNamespaces())
 
+  # Check readiness whether or not messages are wanted: a failed install is
+  # not a status message.
+  after <- if (format == "both") {
+    html <- islh_check("html", quiet = TRUE)
+    docx <- islh_check("docx", quiet = TRUE)
+    if (html$ok) docx else html
+  } else {
+    islh_check(format = check$format, quiet = TRUE)
+  }
+  if (!after$ok) {
+    .islh_warn(c(
+      "!" = "Some packages are still not ready.",
+      .islh_problem_bullets(after)
+    ))
+  }
+
   if (!isTRUE(quiet)) {
-    after <- if (format == "both") {
-      html <- islh_check("html", quiet = TRUE)
-      docx <- islh_check("docx", quiet = TRUE)
-      if (html$ok) docx else html
-    } else {
-      islh_check(format = check$format, quiet = TRUE)
-    }
     if (after$ok) {
       .islh_inform(c("v" = "Done. Run {.code islh_setup()} in your report."))
-    } else {
-      .islh_warn(c(
-        "!" = "Some packages are still not ready.",
-        .islh_problem_bullets(after)
-      ))
     }
     if (length(loaded) > 0L) {
       .islh_inform(c(

@@ -44,11 +44,13 @@
 #   `islh_flextable()` sets, so an older flextable errors with
 #   `unused argument (repeat_headers = TRUE)`.
 # * gtsummary 2.0.0 added the `label_style_*()` functions the table theme
-#   uses. gtsummary is optional, so an older one is skipped, not required.
+#   uses, but 2.0.0 to 2.0.2 fail inside their own glue calls with glue 1.8.0
+#   and later, so 2.0.3 is the oldest that works with current packages.
+#   gtsummary is optional, so an older one is skipped, not required.
 .islh_min_versions <- c(
   ggplot2 = "3.5.0",
   flextable = "0.9.10",
-  gtsummary = "2.0.0"
+  gtsummary = "2.0.3"
 )
 
 # Which of `packages` are installed but older than the package needs?

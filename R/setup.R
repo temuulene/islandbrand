@@ -123,6 +123,10 @@
 #' Only the first call of a session takes the record, so repeated setup calls
 #' followed by one [islh_reset()] return to the state before the first of them.
 #'
+#' Setup either completes or changes nothing. If a step fails part way, for
+#' example while setting up tables, the session is put back as the call found
+#' it, and the record from an earlier successful setup is kept.
+#'
 #' @examples
 #' check <- islh_check("plots", quiet = TRUE)
 #' check[c("format", "tables", "ok")]
@@ -169,6 +173,17 @@ islh_setup <- function(
     ))
   }
 
+  # From here on the session changes. If any step fails, put back everything
+  # the earlier steps changed, so a failed setup leaves no partial branding and
+  # no record pointing at it. The record is kept only once setup succeeds.
+  committed <- FALSE
+  on.exit(
+    if (!committed) {
+      .islh_restore_state(restore_point)
+    },
+    add = TRUE
+  )
+
   # Caches into `.islh_state$font`; read it back with `.islh_font()`.
   islh_font_family(refresh = TRUE, warn = TRUE)
   plot_config <- .islh_use_theme(
@@ -196,6 +211,7 @@ islh_setup <- function(
   if (is.null(.islh_slot("setup"))) {
     .islh_state$setup <- restore_point
   }
+  committed <- TRUE
 
   result <- list(
     version = islh_version(),

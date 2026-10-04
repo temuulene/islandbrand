@@ -21,27 +21,43 @@ which also shows how to draw confidence intervals.
 
 ## Installing
 
-Install the development version from GitHub:
+### On an Island Health laptop
+
+Ask your team lead which version is approved, and get the Windows `.zip` for
+it. Each published release attaches one on the
+[Releases page](https://github.com/temuulene/islandbrand/releases), with a
+`.tar.gz` source package. Until a version is published there, the team lead
+provides the file. No token, GitHub account or compiler is needed.
+
+R must load the packages `islandbrand` is built on before any of its
+functions can run, so install those first, then the file:
+
+```r
+install.packages(
+  c("cli", "ggplot2", "rlang", "scales", "systemfonts"),
+  type = "binary"
+)
+install.packages("path/to/islandbrand_x.y.z.zip", repos = NULL)
+```
+
+Replace `x.y.z` with the approved version. PHASE staff can instead use
+`install-phase.R` from the paired
+[islandepi release](https://github.com/temuulene/islandepi/releases). It does
+both steps, checks the version, and confirms the package loads.
+
+Then install the packages your output format needs, and restart R:
+
+```r
+islandbrand::islh_install_deps("html")   # "docx", or "both"
+```
+
+### On a development machine
+
+With access to GitHub, install the development version:
 
 ```r
 install.packages("remotes", type = "binary")
 remotes::install_github("temuulene/islandbrand")
-```
-
-If your network blocks GitHub, ask your team lead for the built package and
-install it from the file. No token, GitHub account or compiler is required:
-
-```r
-install.packages("path/to/islandbrand_0.6.0.zip", repos = NULL)
-```
-
-Every tagged release attaches that `.zip` for Windows and a `.tar.gz` source
-package.
-
-Then install the packages your output format needs:
-
-```r
-islandbrand::islh_install_deps("html")   # "docx", or "both"
 ```
 
 ## Choose the function

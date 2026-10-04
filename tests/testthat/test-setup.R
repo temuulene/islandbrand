@@ -15,13 +15,18 @@ test_that("loading the package changes nothing", {
   # The state has to be inspected in a session that has not run islh_setup(),
   # so this runs in a fresh R process rather than trusting the current one.
   script <- "cat(exists('font', envir = islandbrand:::.islh_state, inherits = FALSE))"
-  result <- system2(
+  # Where islandbrand is not installed, as when testing from a checkout, the
+  # fresh session cannot load it; system2() warns and returns nothing.
+  result <- suppressWarnings(system2(
     file.path(R.home("bin"), "R"),
     c("--vanilla", "--slave", "-e", shQuote(script)),
     stdout = TRUE,
     stderr = FALSE
+  ))
+  skip_if(
+    length(result) == 0L,
+    "could not load islandbrand in a fresh R session"
   )
-  skip_if(length(result) == 0L, "could not start a fresh R session")
   expect_equal(trimws(paste(result, collapse = "")), "FALSE")
 })
 

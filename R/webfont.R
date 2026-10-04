@@ -93,5 +93,29 @@
     all_files = FALSE
   )
   knitr::knit_meta_add(list(dependency))
+  .islh_state$webfont_document <- .islh_current_input()
   TRUE
+}
+
+# Whether the document being knitted right now already carries BC Sans. The
+# islh.document_webfont option outlives the render that set it, so on its own
+# it would stop a table exported later in the same session, or knitted into
+# another document, from embedding the font it needs.
+.islh_document_has_webfont <- function() {
+  if (!isTRUE(getOption("islh.document_webfont", FALSE))) {
+    return(FALSE)
+  }
+  if (!isTRUE(getOption("knitr.in.progress", FALSE))) {
+    return(FALSE)
+  }
+  registered <- .islh_state$webfont_document
+  current <- .islh_current_input()
+  !is.null(registered) && !is.null(current) && identical(registered, current)
+}
+
+.islh_current_input <- function() {
+  if (!requireNamespace("knitr", quietly = TRUE)) {
+    return(NULL)
+  }
+  tryCatch(knitr::current_input(dir = TRUE), error = function(e) NULL)
 }

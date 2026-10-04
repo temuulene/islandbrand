@@ -180,3 +180,96 @@ test_that("with_islh nests inside an active setup without undoing it", {
 test_that("reset arguments are checked", {
   expect_error(islh_reset(quiet = NA), "single TRUE or FALSE")
 })
+
+# Everything islh_setup() changes, for comparing before and after a failure.
+session_settings <- function() {
+  list(
+    theme = ggplot2::theme_get(),
+    fill = ggplot2::GeomBar$default_aes$fill,
+    options = lapply(.islh_option_names, getOption),
+    font = .islh_slot("font"),
+    setup = .islh_slot("setup")
+  )
+}
+
+test_that("a setup that fails part way changes nothing", {
+  local_clean_session()
+  before <- session_settings()
+  real_use_theme <- .islh_use_theme
+  real_font_family <- islh_font_family
+
+  # A failure after each stage of setup: the font, the plot theme, and the
+  # table theme.
+  failures <- list(
+    font = function() {
+      local_mocked_bindings(
+        islh_font_family = function(...) {
+          real_font_family(...)
+          stop("font step failed")
+        },
+        .env = parent.frame()
+      )
+    },
+    plots = function() {
+      local_mocked_bindings(
+        .islh_use_theme = function(...) {
+          real_use_theme(...)
+          stop("plot step failed")
+        },
+        .env = parent.frame()
+      )
+    },
+    tables = function() {
+      local_mocked_bindings(
+        islh_check = function(...) {
+          list(
+            ok = TRUE,
+            format = "html",
+            tables = TRUE,
+            embed_fonts = FALSE
+          )
+        },
+        .islh_use_html_theme = function(...) stop("table step failed"),
+        .env = parent.frame()
+      )
+    }
+  )
+
+  for (stage in names(failures)) {
+    local({
+      failures[[stage]]()
+      expect_error(
+        suppressWarnings(islh_setup(format = "plots", quiet = TRUE)),
+        "step failed"
+      )
+    })
+    expect_identical(session_settings(), before, label = stage)
+    expect_false(islh_reset(quiet = TRUE))
+  }
+})
+
+test_that("a failed second setup keeps the first one's way back", {
+  local_clean_session()
+  original <- ggplot2::theme_get()
+
+  suppressWarnings(islh_setup(format = "plots", quiet = TRUE))
+  active <- session_settings()
+
+  real_use_theme <- .islh_use_theme
+  local({
+    local_mocked_bindings(
+      .islh_use_theme = function(...) {
+        real_use_theme(base_size = 30, grid = "both", set_knitr = FALSE)
+        stop("plot step failed")
+      }
+    )
+    expect_error(
+      suppressWarnings(islh_setup(format = "plots", quiet = TRUE)),
+      "step failed"
+    )
+  })
+
+  expect_identical(session_settings(), active)
+  expect_true(islh_reset(quiet = TRUE))
+  expect_identical(ggplot2::theme_get(), original)
+})

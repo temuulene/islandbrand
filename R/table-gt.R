@@ -175,8 +175,7 @@ islh_gt <- function(
     )
   }
 
-  embed_in_table <- isTRUE(embed_fonts) &&
-    !isTRUE(getOption("islh.document_webfont", FALSE))
+  embed_in_table <- isTRUE(embed_fonts) && !.islh_document_has_webfont()
   if (embed_in_table) {
     webfont_css <- .islh_bc_sans_webfont_css()
     if (nzchar(webfont_css)) {

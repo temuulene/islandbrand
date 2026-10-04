@@ -36,7 +36,11 @@ test_that("only what the check reports as missing is installed", {
     }
   )
 
-  result <- islh_install_deps("html", quiet = TRUE)
+  # The fake installer installs nothing, so the check afterwards still fails.
+  expect_warning(
+    result <- islh_install_deps("html", quiet = TRUE),
+    "still not ready"
+  )
   expect_equal(result, "gt")
   expect_equal(calls$packages, "gt")
   if (.Platform$OS.type == "windows") {
@@ -94,4 +98,57 @@ test_that("the installer is base R's, never pak", {
   body <- paste(deparse(.islh_install_packages), collapse = "\n")
   expect_match(body, "utils::install.packages", fixed = TRUE)
   expect_false(grepl("pak", body, fixed = TRUE))
+})
+
+test_that("a quiet install still warns when packages are not ready", {
+  calls <- local_fake_installer()
+  local_mocked_bindings(
+    islh_check = function(format, ...) {
+      structure(
+        list(
+          ok = FALSE,
+          format = format,
+          tables = TRUE,
+          embed_fonts = FALSE,
+          required = "gt",
+          missing = "gt",
+          outdated = character(),
+          install_command = ""
+        ),
+        class = "islh_dependency_check"
+      )
+    }
+  )
+
+  expect_warning(
+    expect_no_message(result <- islh_install_deps("html", quiet = TRUE)),
+    "still not ready"
+  )
+  expect_equal(result, "gt")
+  expect_error(islh_install_deps("html", quiet = NA), "TRUE or FALSE")
+})
+
+test_that("the README installs every import before the package file", {
+  # R loads the imports before any islandbrand function can run, so the
+  # README's first command must cover all of them. Source checkouts only:
+  # README.md is not part of the installed package.
+  readme <- test_path("..", "..", "README.md")
+  description <- test_path("..", "..", "DESCRIPTION")
+  skip_if_not(file.exists(readme) && file.exists(description))
+
+  imports <- read.dcf(description, fields = "Imports")[1, 1]
+  imports <- trimws(sub("\\(.*", "", strsplit(imports, ",")[[1]]))
+  base <- rownames(utils::installed.packages(priority = "base"))
+  imports <- sort(setdiff(imports, base))
+
+  text <- paste(readLines(readme), collapse = "\n")
+  command <- regmatches(
+    text,
+    regexpr("install\\.packages\\(\\s*c\\([^)]*\\)", text)
+  )
+  listed <- sort(regmatches(
+    command,
+    gregexpr('(?<=")[^",]+(?=")', command, perl = TRUE)
+  )[[1]])
+  expect_equal(listed, imports)
 })

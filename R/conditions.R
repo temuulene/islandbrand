@@ -55,6 +55,11 @@
   gsub("}", "}}", gsub("{", "{{", command, fixed = TRUE), fixed = TRUE)
 }
 
+# Stops unless `package` is installed, and recent enough when the package
+# declares a minimum for it in `.islh_min_versions`. Every entry point that
+# needs an optional package calls this, so a direct call such as
+# islh_flextable() gets the same clear message as islh_setup(), rather than an
+# error from inside an older version's interface.
 .islh_require <- function(package, feature, call = rlang::caller_env()) {
   if (!requireNamespace(package, quietly = TRUE)) {
     .islh_abort(
@@ -64,6 +69,21 @@
           "Install it with {.code ",
           .islh_install_command(package),
           "} and try again."
+        )
+      ),
+      call = call
+    )
+  }
+  if (length(.islh_outdated(package)) > 0L) {
+    installed <- as.character(utils::packageVersion(package))
+    needed <- .islh_min_versions[[package]]
+    .islh_abort(
+      c(
+        "Package {.pkg {package}} {installed} is too old for {feature}.",
+        i = paste0(
+          "Version {needed} or newer is required. Install it with {.code ",
+          .islh_install_command(package),
+          "}, then restart R."
         )
       ),
       call = call

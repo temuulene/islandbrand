@@ -48,6 +48,10 @@ session afterwards even if that code fails.
 
 Only the first call of a session takes the record, so repeated setup calls
 followed by one \code{\link[=islh_reset]{islh_reset()}} return to the state before the first of them.
+
+Setup either completes or changes nothing. If a step fails part way, for
+example while setting up tables, the session is put back as the call found
+it, and the record from an earlier successful setup is kept.
 }
 
 \examples{

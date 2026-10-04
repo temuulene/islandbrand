@@ -174,6 +174,27 @@ test_that("an old gtsummary is skipped with a warning, not an error", {
   )
 })
 
+test_that("a direct table call stops on an old flextable", {
+  # flextable 0.9.4 failed inside its own interface ("unused argument
+  # (repeat_headers = TRUE)"). The direct call must give the same clear
+  # message as islh_setup(), not only setup.
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("officer")
+  local_mocked_bindings(
+    .islh_outdated = function(packages) intersect(packages, "flextable")
+  )
+  error <- expect_error(
+    islh_flextable(data.frame(x = 1)),
+    class = "islh_error"
+  )
+  message <- conditionMessage(error)
+  expect_match(message, "flextable", fixed = TRUE)
+  expect_match(message, "too old", fixed = TRUE)
+  expect_match(message, .islh_min_versions[["flextable"]], fixed = TRUE)
+  expect_match(message, "install.packages", fixed = TRUE)
+  expect_equal(rlang::call_name(error$call), "islh_flextable")
+})
+
 site_details <- function() {
   data.frame(
     hsda = c("South", "South", "Central", "North"),
@@ -263,4 +284,40 @@ test_that("islh_flextable checks its grouping argument", {
     ),
     "needs a data frame"
   )
+})
+
+test_that("a table knitted with the document font relies on it only there", {
+  skip_if_not_installed("gt")
+  # Count attempts to embed the font rather than needing BC Sans installed.
+  embedded <- new.env()
+  embedded$n <- 0L
+  local_mocked_bindings(
+    .islh_bc_sans_webfont_css = function(...) {
+      embedded$n <- embedded$n + 1L
+      "/* BC Sans */"
+    }
+  )
+  knitting <- NULL
+  local_mocked_bindings(.islh_current_input = function() knitting)
+  withr::defer(rm(list = "webfont_document", envir = .islh_state))
+  table <- function() islh_gt(data.frame(x = 1), embed_fonts = TRUE)
+
+  # Setup during an HTML render registered the font with report.qmd.
+  .islh_state$webfont_document <- "report.qmd"
+  withr::local_options(islh.document_webfont = TRUE)
+
+  # While report.qmd is knitting, the document carries the font.
+  knitting <- "report.qmd"
+  withr::with_options(list(knitr.in.progress = TRUE), table())
+  expect_equal(embedded$n, 0L)
+
+  # Another document knitted in the same session does not.
+  knitting <- "appendix.qmd"
+  withr::with_options(list(knitr.in.progress = TRUE), table())
+  expect_equal(embedded$n, 1L)
+
+  # Nor does a table exported after the render, at the console.
+  knitting <- NULL
+  withr::with_options(list(knitr.in.progress = NULL), table())
+  expect_equal(embedded$n, 2L)
 })
