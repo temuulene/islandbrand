@@ -17,6 +17,11 @@
 #
 # Run with: Rscript data-raw/build_example_lha.R
 # Needs sf and rmapshaper, and network access to the two services.
+#
+# The services change: boundaries are corrected and population estimates are
+# revised. So the script also writes inst/extdata/islh-lha-provenance.csv, a
+# build record of when the data was retrieved, from where, and the MD5 hash of
+# each raw response, so a later rebuild can be told apart from this one.
 
 year <- 2025L
 keep <- 0.02
@@ -36,7 +41,15 @@ population_url <- paste0(
   "local-health-area-population.csv"
 )
 
-boundaries <- sf::st_read(boundary_url, quiet = TRUE)
+# Save each raw response before reading it, so its hash records exactly what
+# the service returned.
+retrieved <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+boundary_file <- tempfile(fileext = ".json")
+population_file <- tempfile(fileext = ".csv")
+utils::download.file(boundary_url, boundary_file, mode = "wb", quiet = TRUE)
+utils::download.file(population_url, population_file, mode = "wb", quiet = TRUE)
+
+boundaries <- sf::st_read(boundary_file, quiet = TRUE)
 boundaries <- sf::st_transform(boundaries, 3005)
 boundaries <- sf::st_make_valid(boundaries)
 stopifnot(nrow(boundaries) == 14L)
@@ -50,7 +63,7 @@ boundaries <- rmapshaper::ms_simplify(
 )
 boundaries <- sf::st_make_valid(boundaries)
 
-population <- utils::read.csv(population_url, check.names = FALSE)
+population <- utils::read.csv(population_file, check.names = FALSE)
 population <- population[
   population$Year == year &
     population$Gender == "T" &
@@ -82,3 +95,59 @@ path <- "inst/extdata/islh-lha.gpkg"
 unlink(path)
 sf::st_write(out, path, layer = "lha", quiet = TRUE)
 cat("wrote", path, format(file.size(path), big.mark = ","), "bytes\n")
+
+md5 <- function(file) unname(tools::md5sum(file))
+provenance <- data.frame(
+  field = c(
+    "dataset",
+    "retrieved_utc",
+    "boundary_source",
+    "boundary_layer",
+    "boundary_url",
+    "boundary_md5",
+    "boundary_bytes",
+    "population_source",
+    "population_url",
+    "population_md5",
+    "population_bytes",
+    "population_year",
+    "population_rows",
+    "crs",
+    "simplification",
+    "licence",
+    "software",
+    "note"
+  ),
+  value = c(
+    path,
+    retrieved,
+    "BC Data Catalogue record afd021d9-7722-4410-b506-d394c66e74fc",
+    "WHSE_ADMIN_BOUNDARIES.BCHA_LOCAL_HEALTH_AREA_SP",
+    boundary_url,
+    md5(boundary_file),
+    file.size(boundary_file),
+    paste(
+      "BC Data Catalogue record 86839277-986a-4a29-9f70-fa9b1166f6cb,",
+      "resource d4bbb2a0-aff7-403f-b52a-a634d05ee70f"
+    ),
+    population_url,
+    md5(population_file),
+    file.size(population_file),
+    year,
+    "Gender T, Type Estimate",
+    "EPSG:3005",
+    paste0("rmapshaper::ms_simplify(keep = ", keep, ", keep_shapes = TRUE)"),
+    "Open Government Licence - British Columbia",
+    paste0(
+      R.version.string,
+      "; sf ",
+      utils::packageVersion("sf"),
+      "; rmapshaper ",
+      utils::packageVersion("rmapshaper")
+    ),
+    "Built by data-raw/build_example_lha.R."
+  )
+)
+record <- "inst/extdata/islh-lha-provenance.csv"
+utils::write.csv(provenance, record, row.names = FALSE)
+cat("wrote", record, "\n")

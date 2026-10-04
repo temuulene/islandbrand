@@ -126,7 +126,10 @@ islh_example_data <- function() {
 #'   Population: BC Stats, BC Sub-Provincial Population Estimates and
 #'   Projections,
 #'   <https://catalogue.data.gov.bc.ca/dataset/86839277-986a-4a29-9f70-fa9b1166f6cb>.
-#'   Built by `data-raw/build_example_lha.R`.
+#'   Built by `data-raw/build_example_lha.R`. The build record, with when the
+#'   data was retrieved, the exact source addresses and the processing, is in
+#'   `system.file("extdata", "islh-lha-provenance.csv", package =
+#'   "islandbrand")`.
 #'
 #' @seealso [islh_areas()] for each LHA's brand colour.
 #'

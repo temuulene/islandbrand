@@ -32,3 +32,33 @@ test_that("the example files are installed", {
   expect_true(file.exists(islh_reference_docx()))
   expect_equal(nrow(islh_example_data()), 3L)
 })
+
+test_that("the example LHA map ships with its build record", {
+  path <- system.file(
+    "extdata",
+    "islh-lha-provenance.csv",
+    package = "islandbrand"
+  )
+  expect_true(nzchar(path))
+  record <- utils::read.csv(path, colClasses = "character")
+  value <- stats::setNames(record$value, record$field)
+
+  for (field in c(
+    "retrieved_utc",
+    "boundary_url",
+    "population_url",
+    "population_year",
+    "crs",
+    "simplification"
+  )) {
+    expect_true(nzchar(value[[field]]) && !is.na(value[[field]]), label = field)
+  }
+  expect_match(value[["retrieved_utc"]], "^\\d{4}-\\d{2}-\\d{2}T")
+  expect_equal(value[["crs"]], "EPSG:3005")
+
+  skip_if_not_installed("sf")
+  expect_equal(
+    as.character(unique(islh_example_lha()$year)),
+    value[["population_year"]]
+  )
+})
