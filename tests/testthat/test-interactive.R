@@ -383,6 +383,59 @@ test_that("partial theme tweaks keep brand styling and their own settings", {
   expect_equal(converted$theme, original)
 })
 
+test_that("interactive plots follow session setup until reset", {
+  skip_if_not_installed("plotly")
+  state <- .islh_capture_state()
+  withr::defer(.islh_restore_state(state))
+  local_mocked_bindings(
+    islh_font_family = function(...) "",
+    .islh_font = function() ""
+  )
+  islh_reset(quiet = TRUE)
+  ggplot2::theme_set(ggplot2::theme_minimal(base_size = 9))
+  islh_setup(
+    format = "plots",
+    tables = FALSE,
+    base_size = 18,
+    grid = "both",
+    set_knitr = FALSE,
+    quiet = TRUE
+  )
+  plain <- ggplot2::ggplot(datasets::mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+  tweaked <- plain +
+    ggplot2::theme(
+      legend.position = "top",
+      axis.text.x = ggplot2::element_text(angle = 45)
+    )
+  complete <- plain + theme_islh(base_size = 20, grid = "none")
+  for (p in list(plain, tweaked, complete)) {
+    original <- p$theme
+    expected <- plotly::plotly_build(plotly::ggplotly(p))$x$layout
+    actual <- plotly::plotly_build(islh_plotly(p, embed_fonts = FALSE))$x$layout
+    for (axis in c("xaxis", "yaxis")) {
+      expect_equal(actual[[axis]]$tickfont, expected[[axis]]$tickfont)
+      expect_equal(actual[[axis]]$showgrid, expected[[axis]]$showgrid)
+      expect_equal(actual[[axis]]$tickangle, expected[[axis]]$tickangle)
+    }
+    expect_equal(p$theme, original)
+  }
+
+  islh_reset(quiet = TRUE)
+  expect_equal(ggplot2::theme_get()$text$size, 9)
+  expected <- plotly::plotly_build(
+    plotly::ggplotly(plain + theme_islh())
+  )$x$layout
+  actual <- plotly::plotly_build(islh_plotly(
+    plain,
+    embed_fonts = FALSE
+  ))$x$layout
+  expect_equal(actual$xaxis$tickfont, expected$xaxis$tickfont)
+  expect_equal(actual$xaxis$showgrid, expected$xaxis$showgrid)
+  expect_equal(actual$yaxis$tickfont, expected$yaxis$tickfont)
+  expect_equal(actual$yaxis$showgrid, expected$yaxis$showgrid)
+})
+
 test_that("interactive checks select HTML at the console", {
   withr::local_options(knitr.in.progress = FALSE)
   local_mocked_bindings(.islh_resolve_format = function(...) "plots")

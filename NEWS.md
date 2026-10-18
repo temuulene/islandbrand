@@ -11,8 +11,10 @@
   count, respect plot labels, identify reference values, and omit internal
   plotting fields and year-separator tooltips. Case-tile areas show the same
   labels, reference numbers are rounded for display, and existing plot themes
-  are preserved. Partial theme tweaks retain the Island Health base styling,
-  and a shared fill/facet field appears only once in hover labels.
+  are preserved. Partial theme tweaks retain the active `islh_setup()` session
+  theme, including custom text size and gridlines, or the default Island Health
+  styling after `islh_reset()`. A shared fill/facet field appears only once in
+  hover labels.
 * `islh_reactable()` creates branded HTML tables with search, sorting and
   pagination, with optional column filters and reactable customisation.
   Missing values have an explicit label; the guide shows how to display

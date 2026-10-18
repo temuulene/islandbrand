@@ -5,8 +5,10 @@
 #' and ordinary ggplots. No server or online account is needed.
 #'
 #' @param plot A ggplot object. Existing layers, scales and data are kept.
-#'   Partial theme tweaks are layered over the Island Health theme. A supplied
-#'   complete theme, such as `theme_minimal()` or [theme_islh_map()], is kept.
+#'   Uses the current session theme while [islh_setup()] is active, otherwise
+#'   the default Island Health theme. Partial theme tweaks are layered on top.
+#'   A supplied complete theme, such as `theme_minimal()` or [theme_islh_map()],
+#'   is kept.
 #' @param tooltip Fields shown on hover, passed to [plotly::ggplotly()].
 #'   Use `"none"` to hide hover labels, or a vector such as `c("x", "y")`.
 #'   Epidemic curves use reporting dates and counts, with `"x"`, `"y"`,
@@ -76,7 +78,12 @@ islh_plotly <- function(
     .islh_widget_label(plot$labels[[name]], paste0("plot label ", name))
   })
   if (!isTRUE(attr(plot$theme, "complete", exact = TRUE))) {
-    plot <- plot + (theme_islh() + plot$theme)
+    base <- if (!is.null(.islh_state$setup)) {
+      ggplot2::theme_get()
+    } else {
+      theme_islh()
+    }
+    plot <- plot + (base + plot$theme)
   }
   plot <- plot + ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL)
   hover <- .islh_prepare_epi_hover(plot, tooltip)
