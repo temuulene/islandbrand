@@ -28,11 +28,9 @@ check_github_install <- function(repo, candidate = NULL) {
   ))
   tools <- c("make", "gcc", "g++", "gfortran")
   stopifnot(all(Sys.which(tools) == ""))
-  options(
-    repos = c(CRAN = "https://cloud.r-project.org"),
-    pkgType = "binary",
-    install.packages.check.source = "no"
-  )
+  # Leave R's default package type alone: the README's `type = "binary"`
+  # must be what keeps every dependency a prebuilt binary.
+  options(repos = c(CRAN = "https://cloud.r-project.org"))
   utils::install.packages(
     "remotes",
     lib = library,
@@ -63,25 +61,24 @@ check_github_install <- function(repo, candidate = NULL) {
     message("Starting with ggplot2 below the required minimum.")
   }
   if (is.null(candidate)) {
+    # The README command, plus a clean library and no token.
     remotes::install_github(
       repo,
-      lib = library,
-      dependencies = NA,
-      auth_token = NULL,
+      type = "binary",
       upgrade = "always",
       build = FALSE,
-      build_vignettes = FALSE,
+      lib = library,
+      auth_token = NULL,
       quiet = TRUE
     )
     message("Public GitHub installation completed without compiler tools.")
   } else {
     remotes::install_local(
       candidate,
-      lib = library,
-      dependencies = NA,
+      type = "binary",
       upgrade = "always",
       build = FALSE,
-      build_vignettes = FALSE,
+      lib = library,
       force = TRUE,
       quiet = TRUE
     )
