@@ -25,7 +25,7 @@
 
 # At the console an interactive request selects HTML. During a render, keep
 # the detected format so a Word or PDF report cannot silently select HTML.
-.islh_resolve_interactive_format <- function(format) {
+.islh_interactive_format <- function(format) {
   resolved <- .islh_resolve_format(format)
   if (
     format == "auto" &&
@@ -112,7 +112,7 @@ islh_check <- function(
   format <- match.arg(format)
   interactive <- .islh_check_flag(interactive, "interactive")
   format <- if (interactive) {
-    .islh_resolve_interactive_format(format)
+    .islh_interactive_format(format)
   } else {
     .islh_resolve_format(format)
   }
