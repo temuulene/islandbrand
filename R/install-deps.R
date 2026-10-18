@@ -19,6 +19,9 @@
 #'   either.
 #' @param quiet Suppress the status messages. A warning that packages are
 #'   still not ready after installing is given either way.
+#' @param interactive Also install optional plotly and reactable dependencies.
+#'   Use with `format = "html"` or `format = "both"`. With `"auto"`, the
+#'   detected format is used; at the console this selects HTML.
 #'
 #' @return The packages it tried to install, invisibly. After installing, it
 #'   checks again and warns if any of them is still missing or out of date.
@@ -29,17 +32,33 @@
 #' islh_check("html", quiet = TRUE)$missing
 islh_install_deps <- function(
   format = c("auto", "html", "docx", "plots", "both"),
-  quiet = FALSE
+  quiet = FALSE,
+  interactive = FALSE
 ) {
   format <- match.arg(format)
   quiet <- .islh_check_flag(quiet, "quiet")
+  interactive <- .islh_check_flag(interactive, "interactive")
+  if (interactive && format == "auto") {
+    format <- .islh_interactive_format(format)
+  }
+  if (interactive && !format %in% c("html", "both")) {
+    .islh_abort(
+      paste0(
+        "{.arg interactive} requires {.code format = \"html\"} ",
+        "or {.code format = \"both\"}."
+      )
+    )
+  }
 
   # A project that renders to both formats needs both table stacks. Checking
   # only one leaves the other render to fail at the table chunk.
   checks <- if (format == "both") {
-    list(islh_check("html", quiet = TRUE), islh_check("docx", quiet = TRUE))
+    list(
+      islh_check("html", quiet = TRUE, interactive = interactive),
+      islh_check("docx", quiet = TRUE)
+    )
   } else {
-    list(islh_check(format = format, quiet = TRUE))
+    list(islh_check(format = format, quiet = TRUE, interactive = interactive))
   }
   check <- checks[[1]]
   wanted <- unique(unlist(lapply(checks, function(x) c(x$missing, x$outdated))))
@@ -81,11 +100,11 @@ islh_install_deps <- function(
   # Check readiness whether or not messages are wanted: a failed install is
   # not a status message.
   after <- if (format == "both") {
-    html <- islh_check("html", quiet = TRUE)
+    html <- islh_check("html", quiet = TRUE, interactive = interactive)
     docx <- islh_check("docx", quiet = TRUE)
     if (html$ok) docx else html
   } else {
-    islh_check(format = check$format, quiet = TRUE)
+    islh_check(format = check$format, quiet = TRUE, interactive = interactive)
   }
   if (!after$ok) {
     .islh_warn(c(

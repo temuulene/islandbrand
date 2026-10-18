@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Applies Island Health brand colours, typography and layout to ggplot2 figures, including epidemic curves and surveillance graphics, flextable and gt tables, and Quarto HTML and Word reports. Includes project scaffolding for reproducible reports used by the PHASE team.
+Applies Island Health brand colours, typography and layout to ggplot2 figures, including epidemic curves and surveillance graphics, flextable and gt tables, interactive plotly figures and reactable tables, and Quarto HTML and Word reports. Includes project scaffolding for reproducible reports used by the PHASE team.
 }
 \seealso{
 Useful links:

@@ -14,19 +14,20 @@
       [17] "islh_gtsummary_flex"       "islh_gtsummary_gt"        
       [19] "islh_help"                 "islh_hex"                 
       [21] "islh_install_deps"         "islh_logo"                
-      [23] "islh_reference_docx"       "islh_reset"               
-      [25] "islh_save_plot"            "islh_setup"               
-      [27] "islh_update_project"       "islh_use_brand"           
-      [29] "islh_use_quarto"           "islh_version"             
-      [31] "scale_color_islh"          "scale_color_islh_area"    
-      [33] "scale_color_islh_ordinal"  "scale_color_islh_signal"  
-      [35] "scale_colour_islh"         "scale_colour_islh_area"   
-      [37] "scale_colour_islh_ordinal" "scale_colour_islh_signal" 
-      [39] "scale_fill_islh"           "scale_fill_islh_area"     
-      [41] "scale_fill_islh_b"         "scale_fill_islh_ordinal"  
-      [43] "scale_fill_islh_signal"    "scale_y_islh_count"       
-      [45] "theme_islh"                "theme_islh_map"           
-      [47] "with_islh"                
+      [23] "islh_plotly"               "islh_reactable"           
+      [25] "islh_reference_docx"       "islh_reset"               
+      [27] "islh_save_plot"            "islh_setup"               
+      [29] "islh_update_project"       "islh_use_brand"           
+      [31] "islh_use_quarto"           "islh_version"             
+      [33] "scale_color_islh"          "scale_color_islh_area"    
+      [35] "scale_color_islh_ordinal"  "scale_color_islh_signal"  
+      [37] "scale_colour_islh"         "scale_colour_islh_area"   
+      [39] "scale_colour_islh_ordinal" "scale_colour_islh_signal" 
+      [41] "scale_fill_islh"           "scale_fill_islh_area"     
+      [43] "scale_fill_islh_b"         "scale_fill_islh_ordinal"  
+      [45] "scale_fill_islh_signal"    "scale_y_islh_count"       
+      [47] "theme_islh"                "theme_islh_map"           
+      [49] "with_islh"                
 
 # islh_help prints a grouped quick reference
 
@@ -49,6 +50,11 @@
         scale_fill_islh_signal()      red, orange, green for status
         scale_y_islh_count()          count axis with thousands separators
         theme_islh(base_size = 13)    the theme on its own, for one plot
+      
+      INTERACTIVE HTML
+        islh_plotly(plot)             make a ggplot interactive
+        islh_reactable(data)          searchable, sortable table
+        islh_install_deps("html", interactive = TRUE)   install once
       
       MAPS
         theme_islh_map()              map theme with no chart furniture

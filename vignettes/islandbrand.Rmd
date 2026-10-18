@@ -26,35 +26,26 @@ function to use for each task.
 
 ## Before you start
 
-Install the package once per computer, in this order:
+Follow the README's
+[approved staff release instructions](https://github.com/temuulene/islandbrand#approved-staff-release)
+to download and install the approved Windows binary automatically. Use the
+version paired with your approved `islandepi` version. Release assets are
+published only after checks and clean installation pass; if none is
+published yet, use the clearly marked development route only for evaluation.
 
-1. The packages `islandbrand` is built on. R loads them before any
-   `islandbrand` function can run, so no `islandbrand` function can install
-   them for you:
+Then install the packages for your report format:
 
-   ```r
-   install.packages(
-     c("cli", "ggplot2", "rlang", "scales", "systemfonts"),
-     type = "binary"
-   )
-   ```
+```{r install, eval=FALSE}
+islandbrand::islh_install_deps("html")
+```
 
-2. `islandbrand` itself, from the approved Windows `.zip` your team lead
-   gives you, or from a published
-   [release](https://github.com/temuulene/islandbrand/releases):
+Restart R after installation. The commands use Windows binaries, so Rtools
+is not needed. No GitHub account, token or Git client is required.
 
-   ```r
-   install.packages("path/to/islandbrand_x.y.z.zip", repos = NULL)
-   ```
-
-   PHASE staff can use `install-phase.R` from the paired `islandepi` release,
-   which does steps 1 and 2 and checks the result.
-
-3. What your output format needs, then restart R:
-
-   ```r
-   islandbrand::islh_install_deps("html")   # "docx", or "both"
-   ```
+Use `"docx"` for Word or `"both"` for HTML and Word. Add
+`interactive = TRUE` only if you need the optional interactive HTML helpers;
+static and Word reports do not need those packages. The README also covers
+updating to an approved version and offline installation.
 
 `islh_check("html")` or `islh_check("docx")` reports anything still missing.
 
@@ -64,6 +55,8 @@ Install the package once per computer, in this order:
 |---|---|---|
 | Configure a report | `islh_setup()` | Plot and table defaults for the current format |
 | Make a branded plot | `theme_islh()` and a `scale_*_islh()` function | A ggplot object |
+| Make an interactive HTML plot | `islh_plotly()` | A Plotly widget |
+| Make a searchable HTML table | `islh_reactable()` | A reactable widget |
 | Make an HTML table | `islh_gt()` | A `gt` table |
 | Make a Word table | `islh_flextable()` | A `flextable` object |
 | Start a report project | `islh_create_report()` | A ready-to-render Quarto project |

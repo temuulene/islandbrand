@@ -44,7 +44,9 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: local::.
+          extra-packages: |
+            local::.
+            any::chromote
           needs: check
 
       - name: Scaffold and render every format
@@ -56,6 +58,14 @@ jobs:
             Rscript -e "islandbrand::islh_create_report('check-$fmt', format = '$fmt')"
             (cd "check-$fmt" && quarto render report.qmd)
           done
+        shell: bash
+
+      - name: Render and exercise interactive HTML output
+        run: |
+          mkdir -p check-interactive
+          cp inst/examples/interactive.qmd check-interactive/report.qmd
+          quarto render check-interactive/report.qmd
+          Rscript data-raw/check-interactive.R check-interactive/report.html
         shell: bash
 
       - name: Check the output is real
@@ -108,3 +118,4 @@ jobs:
             check-docx/report.docx
             check-both/report.html
             check-both/report.docx
+            check-interactive/report.html

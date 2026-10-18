@@ -21,7 +21,89 @@ which also shows how to draw confidence intervals.
 
 ## Installing
 
-### On an Island Health laptop
+### Approved staff release
+
+Use the Windows release approved by your team lead, paired with the approved
+`islandepi` version. This follows the same release gate as
+[islandepi's staff guide](https://github.com/temuulene/islandepi/blob/main/inst/INSTALL.md):
+release assets appear only after package checks and a clean Windows
+installation pass. A version in DESCRIPTION is not a published release.
+
+Confirm the version is published on the
+[Releases page](https://github.com/temuulene/islandbrand/releases). If there
+is no published version yet, use the development route below for evaluation;
+an approved staff release is not available yet.
+
+In a fresh Windows R session, replace `x.y.z` with that approved, published
+version and run:
+
+```r
+version <- "x.y.z"
+binary <- tempfile(fileext = ".zip")
+download.file(
+  sprintf(
+    "https://github.com/temuulene/islandbrand/releases/download/v%s/islandbrand_%s.zip",
+    version, version
+  ),
+  binary, mode = "wb"
+)
+install.packages(
+  c("cli", "ggplot2", "rlang", "scales", "systemfonts"),
+  type = "binary"
+)
+install.packages(binary, repos = NULL, type = "win.binary")
+stopifnot(as.character(packageVersion("islandbrand")) == version)
+```
+
+The commands download the release automatically and install or update its
+required CRAN packages as Windows binaries. No Rtools, Git client, GitHub
+account, token, or manual ZIP download is needed. Downloading the published
+asset directly also avoids GitHub's shared anonymous API request limit.
+
+Then install the packages your reports need, and restart R:
+
+```r
+islandbrand::islh_install_deps("html")
+```
+
+Use `"docx"` for Word, or `"both"` for HTML and Word. Add
+`interactive = TRUE` only for interactive HTML reports. Update by restarting
+R and rerunning the commands with the newly approved release version.
+Record both package versions and `sessionInfo()` with the report; use a
+project `renv` lockfile when exact dependency versions must be reproduced.
+
+### Development and evaluation from GitHub
+
+To try changes before a release, install the development branch directly.
+This bypasses the release gate and is for evaluation. On Windows:
+
+```r
+install.packages("remotes", type = "binary")
+options(pkgType = "binary")
+remotes::install_github(
+  "temuulene/islandbrand",
+  ref = "main",
+  dependencies = NA,
+  upgrade = "always",
+  build = FALSE,
+  build_vignettes = FALSE
+)
+```
+
+`upgrade = "always"` updates required dependencies, including an installed
+ggplot2 older than the minimum version. On Windows they remain prebuilt CRAN
+binaries. To reproduce a reviewed development revision, replace `"main"`
+with its full commit identifier; for a released revision use its actual
+published tag. Unauthenticated GitHub API installs can share a rate limit
+on a workplace network, so use the direct release download for staff rollout.
+
+The package itself has no compiled code. The development install also skips
+building documentation articles locally, so neither Rtools nor Pandoc or
+Quarto is needed for installation. The
+[online guides](https://temuulene.github.io/islandbrand/) are available to
+staff. Install Quarto separately to render Quarto reports.
+
+### Offline installation
 
 Ask your team lead which version is approved, and get the Windows `.zip` for
 it. Each published release attaches one on the
@@ -51,25 +133,56 @@ Then install the packages your output format needs, and restart R:
 islandbrand::islh_install_deps("html")   # "docx", or "both"
 ```
 
-### On a development machine
-
-With access to GitHub, install the development version:
-
-```r
-install.packages("remotes", type = "binary")
-remotes::install_github("temuulene/islandbrand")
-```
-
 ## Choose the function
 
 | Task | Function |
 |---|---|
 | Routine surveillance or epidemic curve | `islh_epi_curve()` |
 | Branded ggplot | `theme_islh()` and `scale_*_islh()` |
+| Interactive HTML plot | `islh_plotly()` |
+| Searchable, sortable HTML table | `islh_reactable()` |
 | HTML table | `islh_gt()` |
 | Word table | `islh_flextable()` |
 | Quarto report project | `islh_create_report()` |
 | Health-geography map | `theme_islh_map()` and `coord_islh_map()` |
+
+## Interactive HTML reports
+
+Install the optional packages once, then restart R:
+
+```r
+islandbrand::islh_install_deps("html", interactive = TRUE)
+```
+
+In a Quarto or R Markdown HTML report, make a plot as usual and pass it to
+`islh_plotly()`. Pass a data frame to `islh_reactable()` for search, sorting
+and pagination:
+
+```r
+library(islandbrand)
+
+weekly <- data.frame(
+  week = seq(as.Date("2026-01-04"), by = "week", length.out = 6),
+  cases = c(10, 15, 24, 32, 21, 12)
+)
+
+plot <- islh_epi_curve(weekly, date = week, count = cases,
+  title = "Weekly cases")
+islh_plotly(plot)
+
+islh_reactable(weekly, title = "Weekly counts", filterable = TRUE)
+```
+
+Put each widget in its own chunk, as the last expression. Both use Island
+Health colours and BC Sans, work without a server, and keep their standard
+Plotly or reactable interfaces for further customisation. In Quarto, set
+`embed-resources: true` for a single shareable HTML file. For Word output,
+print the original plot and use `islh_flextable()`.
+
+Select and suppress values before creating a widget: the HTML includes its
+underlying data, even when a column or hover field is hidden. The
+[interactive reporting guide](https://temuulene.github.io/islandbrand/articles/interactive.html)
+includes formatting, multiple-format reports, and a complete Quarto example.
 
 ## Epidemic curves
 
