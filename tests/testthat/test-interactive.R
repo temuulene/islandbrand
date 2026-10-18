@@ -383,7 +383,7 @@ test_that("partial theme tweaks keep brand styling and their own settings", {
   expect_equal(converted$theme, original)
 })
 
-test_that("interactive checks and installation agree on automatic formats", {
+test_that("interactive checks select HTML at the console", {
   withr::local_options(knitr.in.progress = FALSE)
   local_mocked_bindings(.islh_resolve_format = function(...) "plots")
   check <- islh_check(interactive = TRUE, quiet = TRUE)
@@ -393,7 +393,11 @@ test_that("interactive checks and installation agree on automatic formats", {
     islh_check("plots", interactive = TRUE, quiet = TRUE),
     "requires"
   )
+})
 
+test_that("interactive checks retain automatic non-HTML render formats", {
+  skip_if_not_installed("knitr")
+  local_mocked_bindings(.islh_resolve_format = function(...) "plots")
   withr::local_options(knitr.in.progress = TRUE)
   expect_error(islh_check(interactive = TRUE, quiet = TRUE), "requires")
   expect_error(islh_install_deps(interactive = TRUE, quiet = TRUE), "requires")
