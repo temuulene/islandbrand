@@ -15,6 +15,9 @@
 #'   use `columns` with [reactable::colDef()] for labels and number formatting,
 #'   `groupBy` for row groups, or `defaultSorted` for initial sorting. These
 #'   override the corresponding defaults, including `theme` and `defaultColDef`.
+#'   Missing values display as `"Missing"`. For a numeric column already
+#'   suppressed to `NA`, use `colDef(na = "Suppressed")` to label those cells
+#'   while keeping numeric sorting.
 #'
 #' @return A `reactable` HTML widget that can be printed in a Quarto or
 #'   R Markdown HTML chunk or saved with [htmlwidgets::saveWidget()].
@@ -71,7 +74,7 @@ islh_reactable <- function(
       defaultPageSize = page_size,
       highlight = TRUE,
       borderless = TRUE,
-      defaultColDef = reactable::colDef(na = "n/a"),
+      defaultColDef = reactable::colDef(na = "Missing"),
       theme = reactable::reactableTheme(
         color = islh_brand("black"),
         backgroundColor = islh_brand("white"),

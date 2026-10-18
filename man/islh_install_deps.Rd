@@ -20,7 +20,8 @@ either.}
 still not ready after installing is given either way.}
 
 \item{interactive}{Also install optional plotly and reactable dependencies.
-Use with \code{format = "html"} or \code{format = "both"}.}
+Use with \code{format = "html"} or \code{format = "both"}. With \code{"auto"}, the
+detected format is used; at the console this selects HTML.}
 }
 \value{
 The packages it tried to install, invisibly. After installing, it

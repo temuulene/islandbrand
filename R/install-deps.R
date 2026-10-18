@@ -20,7 +20,8 @@
 #' @param quiet Suppress the status messages. A warning that packages are
 #'   still not ready after installing is given either way.
 #' @param interactive Also install optional plotly and reactable dependencies.
-#'   Use with `format = "html"` or `format = "both"`.
+#'   Use with `format = "html"` or `format = "both"`. With `"auto"`, the
+#'   detected format is used; at the console this selects HTML.
 #'
 #' @return The packages it tried to install, invisibly. After installing, it
 #'   checks again and warns if any of them is still missing or out of date.
@@ -37,6 +38,12 @@ islh_install_deps <- function(
   format <- match.arg(format)
   quiet <- .islh_check_flag(quiet, "quiet")
   interactive <- .islh_check_flag(interactive, "interactive")
+  if (interactive && format == "auto") {
+    format <- .islh_resolve_format(format)
+    if (format == "plots") {
+      format <- "html"
+    }
+  }
   if (interactive && !format %in% c("html", "both")) {
     .islh_abort(
       paste0(

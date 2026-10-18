@@ -35,7 +35,10 @@ font. Follows \code{\link[=islh_setup]{islh_setup()}} by default.}
 \item{...}{Additional named \code{\link[reactable:reactable]{reactable::reactable()}} arguments. For example,
 use \code{columns} with \code{\link[reactable:colDef]{reactable::colDef()}} for labels and number formatting,
 \code{groupBy} for row groups, or \code{defaultSorted} for initial sorting. These
-override the corresponding defaults, including \code{theme} and \code{defaultColDef}.}
+override the corresponding defaults, including \code{theme} and \code{defaultColDef}.
+Missing values display as \code{"Missing"}. For a numeric column already
+suppressed to \code{NA}, use \code{colDef(na = "Suppressed")} to label those cells
+while keeping numeric sorting.}
 }
 \value{
 A \code{reactable} HTML widget that can be printed in a Quarto or

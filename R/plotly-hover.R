@@ -42,7 +42,10 @@
         value <- spec$dates
       }
       label <- .islh_epi_hover_label(plot, aesthetic, field, spec$kind)
-      value <- .islh_epi_hover_value(value)
+      value <- .islh_epi_hover_value(
+        value,
+        reference = spec$kind == "reference"
+      )
       line <- paste0(
         htmltools::htmlEscape(label),
         ": ",
@@ -101,16 +104,19 @@
     label <- fallback
   }
   if (kind == "total" && aesthetic == "y") {
-    label <- if (label == "Cases") "Total cases" else paste("Total", label)
+    label <- if (label == "Cases") "Total cases" else paste0(label, " (total)")
   }
   label
 }
 
-.islh_epi_hover_value <- function(value) {
+.islh_epi_hover_value <- function(value, reference = FALSE) {
   out <- if (inherits(value, "Date")) {
     format(value, "%Y-%m-%d")
   } else if (is.numeric(value)) {
-    format(value, trim = TRUE, scientific = FALSE, big.mark = ",")
+    if (reference) {
+      value <- round(value, 2)
+    }
+    vapply(value, format, "", trim = TRUE, scientific = FALSE, big.mark = ",")
   } else {
     as.character(value)
   }
@@ -140,7 +146,14 @@
     trace$hoverinfo <- if (skip) "skip" else "text"
     trace$hovertemplate <- if (skip) NULL else "%{hovertext}<extra></extra>"
     trace$hovertext <- if (skip) NULL else unname(state$text[indexes])
-    if (is.null(trace$mode) || !grepl("text", trace$mode, fixed = TRUE)) {
+    if (identical(trace$hoveron, "fills") && !skip) {
+      # Plotly's area-hover path reads one scalar text value, ignoring the
+      # point hover template. Each case polygon describes one reporting row.
+      trace$text <- unique(stats::na.omit(trace$hovertext))[[1]]
+      trace$hovertemplate <- NULL
+    } else if (
+      is.null(trace$mode) || !grepl("text", trace$mode, fixed = TRUE)
+    ) {
       trace$text <- NULL
     }
     trace

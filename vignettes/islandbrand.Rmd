@@ -26,30 +26,26 @@ function to use for each task.
 
 ## Before you start
 
-Install the public package directly from GitHub. On Windows, run:
+Follow the README's
+[approved staff release instructions](https://github.com/temuulene/islandbrand#approved-staff-release)
+to download and install the approved Windows binary automatically. Use the
+version paired with your approved `islandepi` version. Release assets are
+published only after checks and clean installation pass; if none is
+published yet, use the clearly marked development route only for evaluation.
+
+Then install the packages for your report format:
 
 ```{r install, eval=FALSE}
-install.packages("remotes", type = "binary")
-options(pkgType = "binary")
-remotes::install_github(
-  "temuulene/islandbrand",
-  dependencies = NA, upgrade = "never",
-  build = FALSE, build_vignettes = FALSE
-)
-islandbrand::islh_install_deps("html", interactive = TRUE)
+islandbrand::islh_install_deps("html")
 ```
 
-Restart R after installation. The package has no compiled code, and the
-commands use prebuilt CRAN dependencies, so Rtools is not needed. The public
-repository needs no GitHub account, token or Git client. Local article
-building is skipped; read the guides on the package website.
+Restart R after installation. The commands use Windows binaries, so Rtools
+is not needed. No GitHub account, token or Git client is required.
 
-Use `"docx"` for Word or `"both"` for HTML and Word. Omit
-`interactive = TRUE` for static reports. If a team lead specifies a release,
-append its tag to the repository name, such as
-`"temuulene/islandbrand@v0.1.0"`. Update by restarting R and rerunning the
-same installation command. The README also describes offline installation
-from a release ZIP when GitHub cannot be reached.
+Use `"docx"` for Word or `"both"` for HTML and Word. Add
+`interactive = TRUE` only if you need the optional interactive HTML helpers;
+static and Word reports do not need those packages. The README also covers
+updating to an approved version and offline installation.
 
 `islh_check("html")` or `islh_check("docx")` reports anything still missing.
 

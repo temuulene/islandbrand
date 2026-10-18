@@ -38,24 +38,22 @@ of the next time you download a ZIP.
 
 ## Install the package
 
-Install directly from the public GitHub repository. On Windows:
+Follow the README's
+[approved staff release instructions](https://github.com/temuulene/islandbrand#approved-staff-release)
+for the version paired with your approved `islandepi` release. The commands
+download its checked Windows binary automatically. A version in DESCRIPTION
+does not mean a release has been published; use the development route only
+for evaluation until a published release is approved.
+
+Then install the output packages you need:
 
 ```{r install-package, eval=FALSE}
-install.packages("remotes", type = "binary")
-options(pkgType = "binary")
-remotes::install_github(
-  "temuulene/islandbrand",
-  dependencies = NA, upgrade = "never",
-  build = FALSE, build_vignettes = FALSE
-)
 islandbrand::islh_install_deps("docx") # or "html", or "both"
 ```
 
-Restart R afterwards. The package has no compiled code, and its CRAN
-dependencies install as binaries; Rtools is not needed. A Git client and
-GitHub account are not needed either. If the team uses an approved release,
-append its tag, such as `"temuulene/islandbrand@v0.1.0"`. The README keeps
-the release-ZIP route for computers that cannot reach GitHub.
+Restart R afterwards. Windows dependencies install as binaries; Rtools, a
+Git client and a GitHub account are not needed. The README keeps the offline
+route for computers that cannot reach GitHub.
 
 ## Move a project, safely
 

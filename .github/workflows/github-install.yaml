@@ -24,6 +24,6 @@ jobs:
       - name: Install directly from public GitHub without compiler tools
         run: Rscript data-raw/check-github-install.R temuulene/islandbrand
         shell: bash
-      - name: Install and exercise the candidate checkout without compiler tools
+      - name: Upgrade an outdated dependency and exercise the candidate without compiler tools
         run: Rscript data-raw/check-github-install.R temuulene/islandbrand .
         shell: bash

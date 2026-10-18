@@ -174,3 +174,65 @@ test_that("faceted hovers use aggregated counts and name missing panels", {
   expect_contains(text, "Date: 2026-01-04<br>Cases: 5<br>area: North")
   expect_contains(text, "Date: 2026-01-04<br>Cases: 0<br>area: Missing")
 })
+
+test_that("case fills carry a single label for browser area hovers", {
+  skip_if_not_installed("plotly")
+  data <- data.frame(
+    week = as.Date("2026-01-04"),
+    cases = c(2, 1),
+    area = c("North", "South")
+  )
+  p <- islh_epi_curve(data, week, cases, fill = area, style = "cases")
+  traces <- plotly::plotly_build(islh_plotly(p, embed_fonts = FALSE))$x$data
+  tiles <- Filter(function(trace) identical(trace$hoveron, "fills"), traces)
+  expect_length(tiles, 3L)
+  for (tile in tiles) {
+    expect_length(tile$text, 1L)
+    expect_match(
+      tile$text,
+      "Date: 2026-01-04<br>Cases: [12]<br>area: (North|South)"
+    )
+    expect_null(tile$hovertemplate)
+  }
+  traces <- plotly::plotly_build(islh_plotly(
+    p,
+    tooltip = "none",
+    embed_fonts = FALSE
+  ))$x$data
+  tiles <- Filter(function(trace) identical(trace$hoveron, "fills"), traces)
+  expect_true(all(vapply(
+    tiles,
+    function(trace) trace$hoverinfo == "skip",
+    TRUE
+  )))
+})
+
+test_that("reference numbers are rounded without padding other values", {
+  skip_if_not_installed("plotly")
+  data <- data.frame(week = as.Date("2026-01-04") + 7 * 0:1, cases = c(2, 4))
+  reference <- data.frame(
+    week = data$week,
+    lower_limit = c(1, 1.25),
+    upper_limit = c(5.123, 6),
+    reference_mean = c(2.333333, 3)
+  )
+  p <- islh_epi_curve(data, week, cases, reference = reference)
+  traces <- plotly::plotly_build(islh_plotly(p, embed_fonts = FALSE))$x$data
+  text <- unlist(lapply(traces, `[[`, "hovertext"))
+  expect_contains(text, "Date: 2026-01-04<br>Reference mean: 2.33")
+  expect_contains(text, "Date: 2026-01-11<br>Reference mean: 3")
+  expect_contains(
+    text,
+    "Date: 2026-01-04<br>Lower limit: 1<br>Upper limit: 5.12"
+  )
+})
+
+test_that("custom total labels read naturally", {
+  skip_if_not_installed("plotly")
+  data <- data.frame(week = as.Date("2026-01-04"), cases = 2)
+  p <- islh_epi_curve(data, week, cases, labels = "total") +
+    ggplot2::labs(y = "Number of cases")
+  traces <- plotly::plotly_build(islh_plotly(p, embed_fonts = FALSE))$x$data
+  text <- unlist(lapply(traces, `[[`, "hovertext"))
+  expect_contains(text, "Date: 2026-01-04<br>Number of cases (total): 2")
+})

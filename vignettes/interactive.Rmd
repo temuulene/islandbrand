@@ -71,12 +71,14 @@ series. Page scrolling stays enabled when the pointer is over the plot.
 Hover labels show the original reporting date and the count for that period
 and group. The bar's centre is offset for drawing; it is not the reporting
 date. The same labels apply to case tiles. Reference bands and lines identify
-their limits or mean, and year separators have no tooltip. With custom plot
+their limits or mean rounded to at most two decimal places, and year
+separators have no tooltip. With custom plot
 labels, such as `ggplot2::labs(x = "Week starting", y = "Reported cases")`,
 the tooltip uses those labels too.
 
-Ordinary ggplots work too. The helper applies the Island Health theme, keeps
-the plot's layers and scales, and puts its title, subtitle and caption outside
+Ordinary ggplots work too. The helper keeps the plot's theme, layers and scales,
+adds the Island Health theme when the plot has no theme, and puts its title,
+subtitle and caption outside
 the panel so zooming cannot hide them:
 
 ```{r scatter}
@@ -110,7 +112,7 @@ islh_reactable(
 
 Type in the search box, click a column heading to sort, or move between pages.
 Column filters are optional; search, sorting and pagination are enabled by
-default. Missing values display as `n/a`.
+default. Missing values display as `Missing`.
 
 Pass standard reactable arguments for more control. Numeric values remain
 numeric, so formatting does not change their sort order:
@@ -194,5 +196,30 @@ rows on other pages and values omitted from hover labels. Hiding a field does
 not remove it from the file. Select the intended columns and apply approved
 suppression rules before creating a widget. For example, use
 `islandepi::islh_suppress_table()` for counts and linked rates, then select
-only the resulting display columns. These helpers do not infer suppression
-thresholds or authorise data for release.
+only the resulting display columns.
+
+Keep suppressed numeric columns numeric: use `label = NULL`, then apply the
+display label in reactable. Turning counts into strings such as `"Suppressed"`
+would also turn numeric sorting into text sorting.
+
+```{r suppressed-table, eval=FALSE}
+counts <- data.frame(
+  area = c("North", "Central", "South", "West"),
+  cases = c(3, 105, 17, 42)
+)
+# The threshold here is illustrative; use the approved rule for your output.
+safe <- islandepi::islh_suppress_table(
+  counts, "cases", threshold = 5, label = NULL
+)
+safe <- safe[c("area", "cases")]
+islh_reactable(
+  safe,
+  columns = list(cases = reactable::colDef(na = "Suppressed"))
+)
+```
+
+In this example every `NA` in `cases` means suppressed. If the input also has
+ordinary missing counts, retain an approved, non-identifying status column
+to distinguish them; the `na` display option labels every `NA` alike. Never
+include a copy of the original unsuppressed column. These helpers do not
+infer suppression thresholds or authorise data for release.

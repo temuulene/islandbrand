@@ -52,3 +52,48 @@ islh_reactable(
   source_note = "Source: simulated example data"
 )
 ```
+
+## Individual cases
+
+Each tile represents one case. Hover over its area for the reporting date
+and period count.
+
+```{r}
+#| echo: false
+small_counts <- data.frame(
+  week = as.Date("2026-01-04") + 7 * 0:1,
+  cases = c(2, 1)
+)
+islh_epi_curve(small_counts, week, cases, style = "cases") |>
+  islh_plotly(height = 280)
+```
+
+```{r}
+#| echo: false
+grouped_counts <- data.frame(
+  week = as.Date("2026-01-04"),
+  cases = c(2, 1),
+  area = c("North", "South")
+)
+islh_epi_curve(grouped_counts, week, cases, fill = area, style = "cases") |>
+  islh_plotly(height = 280)
+```
+
+## Values prepared for release
+
+This example has already had its small value replaced with a numeric missing
+value. The display label keeps it distinct from an ordinary missing value,
+and the remaining counts still sort numerically.
+
+```{r}
+#| echo: false
+safe_counts <- data.frame(
+  area = c("North", "Central", "South", "West"),
+  cases = c(NA_real_, 105, 17, 42)
+)
+islh_reactable(
+  safe_counts,
+  title = "Counts prepared for release",
+  columns = list(cases = reactable::colDef(na = "Suppressed"))
+)
+```

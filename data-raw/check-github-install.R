@@ -39,13 +39,36 @@ check_github_install <- function(repo, candidate = NULL) {
     type = "binary",
     quiet = TRUE
   )
+  if (!is.null(candidate)) {
+    # Also exercise a real, outdated staff dependency. ggplot2 is pure R,
+    # so its archived source can be installed with compiler tools absent.
+    # Install its dependency stack as binaries before adding the old version;
+    # install_version() otherwise asks for source dependencies too.
+    utils::install.packages(
+      c("ggplot2", "tibble"),
+      lib = library,
+      type = "binary",
+      quiet = TRUE
+    )
+    remotes::install_version(
+      "ggplot2",
+      version = "3.4.4",
+      lib = library,
+      dependencies = FALSE,
+      upgrade = "never",
+      build = FALSE,
+      quiet = TRUE
+    )
+    stopifnot(utils::packageVersion("ggplot2") == "3.4.4")
+    message("Starting with ggplot2 below the required minimum.")
+  }
   if (is.null(candidate)) {
     remotes::install_github(
       repo,
       lib = library,
       dependencies = NA,
       auth_token = NULL,
-      upgrade = "never",
+      upgrade = "always",
       build = FALSE,
       build_vignettes = FALSE,
       quiet = TRUE
@@ -56,7 +79,7 @@ check_github_install <- function(repo, candidate = NULL) {
       candidate,
       lib = library,
       dependencies = NA,
-      upgrade = "never",
+      upgrade = "always",
       build = FALSE,
       build_vignettes = FALSE,
       force = TRUE,
@@ -65,6 +88,7 @@ check_github_install <- function(repo, candidate = NULL) {
     message("Candidate checkout installed by the same source-install route.")
   }
   stopifnot(requireNamespace("islandbrand", quietly = TRUE))
+  stopifnot(utils::packageVersion("ggplot2") >= "3.5.0")
   counts <- data.frame(
     week = as.Date("2026-01-04") + 7 * 0:1,
     cases = c(10, 15)

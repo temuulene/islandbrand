@@ -5,7 +5,8 @@
 #' and ordinary ggplots. No server or online account is needed.
 #'
 #' @param plot A ggplot object. Existing layers, scales and data are kept.
-#'   The Island Health theme is applied before conversion.
+#'   Its theme is kept; the Island Health theme is added only when no theme
+#'   has been supplied.
 #' @param tooltip Fields shown on hover, passed to [plotly::ggplotly()].
 #'   Use `"none"` to hide hover labels, or a vector such as `c("x", "y")`.
 #'   Epidemic curves use reporting dates and counts, with `"x"`, `"y"`,
@@ -30,6 +31,8 @@
 #' offset used to centre its bar. Case tiles show the period's group count,
 #' and reference layers identify the mean and limits. Year separators have
 #' no tooltip. Explicit axis and fill labels are also used in the tooltips.
+#' Reference numbers display up to two decimal places without changing the
+#' underlying values.
 #'
 #' Plotly converts common ggplot layers, but some extension geoms, map
 #' coordinates and theme details are not supported. Check the rendered plot
@@ -72,9 +75,10 @@ islh_plotly <- function(
   labels <- lapply(c("title", "subtitle", "caption"), function(name) {
     .islh_widget_label(plot$labels[[name]], paste0("plot label ", name))
   })
-  plot <- plot +
-    theme_islh() +
-    ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL)
+  if (!length(plot$theme)) {
+    plot <- plot + theme_islh()
+  }
+  plot <- plot + ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL)
   hover <- .islh_prepare_epi_hover(plot, tooltip)
   args <- .islh_widget_args(
     list(p = hover$plot, tooltip = tooltip, width = width, height = height),

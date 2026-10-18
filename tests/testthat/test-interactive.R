@@ -288,3 +288,63 @@ test_that("the installer forwards the interactive choice to every HTML check", {
   )
   expect_equal(formats, "html")
 })
+
+test_that("interactive conversion preserves the supplied plot theme", {
+  skip_if_not_installed("plotly")
+  p <- ggplot2::ggplot(datasets::mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point() +
+    theme_islh(base_size = 20, grid = "none") +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+  expected <- plotly::plotly_build(plotly::ggplotly(p))$x$layout
+  actual <- plotly::plotly_build(islh_plotly(p, embed_fonts = FALSE))$x$layout
+  for (axis in c("xaxis", "yaxis")) {
+    expect_equal(actual[[axis]]$tickangle, expected[[axis]]$tickangle)
+    expect_equal(actual[[axis]]$tickfont, expected[[axis]]$tickfont)
+    expect_equal(actual[[axis]]$showgrid, expected[[axis]]$showgrid)
+  }
+  p <- p + theme_islh_map()
+  expected <- plotly::plotly_build(plotly::ggplotly(p))$x$layout
+  actual <- plotly::plotly_build(islh_plotly(p, embed_fonts = FALSE))$x$layout
+  expect_equal(actual$xaxis$showticklabels, expected$xaxis$showticklabels)
+  expect_equal(actual$yaxis$showticklabels, expected$yaxis$showticklabels)
+})
+
+test_that("missing and suppressed table values have explicit labels", {
+  skip_if_not_installed("reactable")
+  data <- data.frame(cases = c(NA_real_, 105, 17, 42))
+  widget <- islh_reactable(data, embed_fonts = FALSE)
+  expect_equal(widget$x$tag$attribs$columns[[1]]$na, "Missing")
+  widget <- islh_reactable(
+    data,
+    embed_fonts = FALSE,
+    columns = list(cases = reactable::colDef(na = "Suppressed"))
+  )
+  expect_equal(widget$x$tag$attribs$columns[[1]]$na, "Suppressed")
+  expect_type(data$cases, "double")
+})
+
+test_that("interactive installation resolves the automatic output format", {
+  formats <- character()
+  local_mocked_bindings(
+    .islh_resolve_format = function(...) "html",
+    islh_check = function(format, interactive = FALSE, ...) {
+      formats <<- c(formats, format)
+      list(
+        ok = TRUE,
+        format = format,
+        missing = character(),
+        outdated = character()
+      )
+    }
+  )
+  expect_equal(islh_install_deps(interactive = TRUE, quiet = TRUE), character())
+  expect_equal(formats, "html")
+
+  formats <- character()
+  local_mocked_bindings(.islh_resolve_format = function(...) "plots")
+  expect_equal(islh_install_deps(interactive = TRUE, quiet = TRUE), character())
+  expect_equal(formats, "html")
+
+  local_mocked_bindings(.islh_resolve_format = function(...) "docx")
+  expect_error(islh_install_deps(interactive = TRUE, quiet = TRUE), "requires")
+})

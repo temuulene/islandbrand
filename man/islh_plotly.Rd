@@ -15,7 +15,8 @@ islh_plotly(
 }
 \arguments{
 \item{plot}{A ggplot object. Existing layers, scales and data are kept.
-The Island Health theme is applied before conversion.}
+Its theme is kept; the Island Health theme is added only when no theme
+has been supplied.}
 
 \item{tooltip}{Fields shown on hover, passed to \code{\link[plotly:ggplotly]{plotly::ggplotly()}}.
 Use \code{"none"} to hide hover labels, or a vector such as \code{c("x", "y")}.
@@ -51,6 +52,8 @@ Epidemic-curve tooltips show each period's start date, rather than the
 offset used to centre its bar. Case tiles show the period's group count,
 and reference layers identify the mean and limits. Year separators have
 no tooltip. Explicit axis and fill labels are also used in the tooltips.
+Reference numbers display up to two decimal places without changing the
+underlying values.
 
 Plotly converts common ggplot layers, but some extension geoms, map
 coordinates and theme details are not supported. Check the rendered plot

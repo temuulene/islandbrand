@@ -82,8 +82,23 @@ check_interactive_report <- function(path) {
         assert(!Array.from(resources)
           .some(node => /^https?:/.test(node.src || node.href)),
           'Report depends on external scripts or styles');
+
+        const safe = document.querySelectorAll('.reactable')[1];
+        assert(safe, 'Suppression example is missing');
+        const caseHeader = Array.from(
+          safe.querySelectorAll('[role="columnheader"]'))
+          .find(node => node.textContent.includes('cases'));
+        caseHeader.click();
+        await wait();
+        const safeValues = Array.from(safe.querySelectorAll('.rt-tbody .rt-tr'))
+          .map(row => row.querySelectorAll('.rt-td')[1]?.textContent)
+          .filter(Boolean);
+        assert(safeValues.includes('Suppressed'),
+          'Suppressed label is missing');
+        assert(safeValues.filter(value => value !== 'Suppressed').join(',') ===
+          '17,42,105', 'Suppressed counts no longer sort numerically');
         return {hover: true, zoom: true, search: true, sort: true,
-          pagination: true, embeddedResources: true};
+          pagination: true, embeddedResources: true, suppression: true};
       })()
     }",
     awaitPromise = TRUE,
@@ -92,6 +107,70 @@ check_interactive_report <- function(path) {
   if (!is.null(result$exceptionDetails)) {
     stop(result$exceptionDetails$exception$description, call. = FALSE)
   }
+
+  # Area hovers use a different browser path from Plotly.Fx.hover(). Move the
+  # pointer over a real tile in both the plain and grouped case curves.
+  for (index in 1:2) {
+    target <- session$Runtime$evaluate(
+      expression = sprintf(
+        r"{
+        (() => {
+          const plot = document.querySelectorAll('.js-plotly-plot')[%d];
+          if (!plot) throw new Error('Case curve is missing');
+          plot.scrollIntoView({block: 'center'});
+          const tile = plot.querySelector('.scatterlayer .trace .js-fill');
+          if (!tile) throw new Error('Case tile is missing');
+          const box = tile.getBoundingClientRect();
+          return {x: box.x + box.width / 2, y: box.y + box.height / 2};
+        })()
+      }",
+        index
+      ),
+      returnByValue = TRUE
+    )
+    if (!is.null(target$exceptionDetails)) {
+      stop(target$exceptionDetails$exception$description, call. = FALSE)
+    }
+    point <- target$result$value
+    session$Input$dispatchMouseEvent(
+      type = "mouseMoved",
+      x = point$x,
+      y = point$y
+    )
+    hover <- session$Runtime$evaluate(
+      expression = sprintf(
+        r"{
+        (async () => {
+          const plot = document.querySelectorAll('.js-plotly-plot')[%d];
+          for (let i = 0; i < 40; i++) {
+            const text = plot.querySelector('.hoverlayer')?.textContent || '';
+            if (text.includes('Date: 2026-01-04') &&
+                text.includes('Cases: 2')) {
+              if (%d === 2 && !text.includes('area: North')) {
+                throw new Error('Case hover group is incorrect: ' + text);
+              }
+              if (/\.islh_|trace \d/.test(text)) {
+                throw new Error('Case hover exposes internal fields: ' + text);
+              }
+              return true;
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+          throw new Error('Case hover must show reporting date and count: ' +
+            plot.querySelector('.hoverlayer')?.textContent);
+        })()
+      }",
+        index,
+        index
+      ),
+      awaitPromise = TRUE,
+      returnByValue = TRUE
+    )
+    if (!is.null(hover$exceptionDetails)) {
+      stop(hover$exceptionDetails$exception$description, call. = FALSE)
+    }
+  }
+  result$result$value$caseTiles <- TRUE
   print(result$result$value)
   invisible(result$result$value)
 }
