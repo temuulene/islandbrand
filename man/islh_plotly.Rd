@@ -15,8 +15,8 @@ islh_plotly(
 }
 \arguments{
 \item{plot}{A ggplot object. Existing layers, scales and data are kept.
-Its theme is kept; the Island Health theme is added only when no theme
-has been supplied.}
+Partial theme tweaks are layered over the Island Health theme. A supplied
+complete theme, such as \code{theme_minimal()} or \code{\link[=theme_islh_map]{theme_islh_map()}}, is kept.}
 
 \item{tooltip}{Fields shown on hover, passed to \code{\link[plotly:ggplotly]{plotly::ggplotly()}}.
 Use \code{"none"} to hide hover labels, or a vector such as \code{c("x", "y")}.

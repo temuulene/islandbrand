@@ -35,6 +35,12 @@
     if (!any(c("all", "text") %in% tooltip)) {
       fields <- fields[names(fields) %in% tooltip | fields %in% tooltip]
     }
+    if (
+      all(c("fill", "facet") %in% names(fields)) &&
+        fields[["fill"]] == fields[["facet"]]
+    ) {
+      fields <- fields[names(fields) != "facet"]
+    }
     for (aesthetic in names(fields)) {
       field <- fields[[aesthetic]]
       value <- layer$data[[field]]

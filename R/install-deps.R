@@ -39,10 +39,7 @@ islh_install_deps <- function(
   quiet <- .islh_check_flag(quiet, "quiet")
   interactive <- .islh_check_flag(interactive, "interactive")
   if (interactive && format == "auto") {
-    format <- .islh_resolve_format(format)
-    if (format == "plots") {
-      format <- "html"
-    }
+    format <- .islh_resolve_interactive_format(format)
   }
   if (interactive && !format %in% c("html", "both")) {
     .islh_abort(

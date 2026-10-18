@@ -348,3 +348,57 @@ test_that("interactive installation resolves the automatic output format", {
   local_mocked_bindings(.islh_resolve_format = function(...) "docx")
   expect_error(islh_install_deps(interactive = TRUE, quiet = TRUE), "requires")
 })
+
+test_that("partial theme tweaks keep brand styling and their own settings", {
+  skip_if_not_installed("plotly")
+  converted <- NULL
+  local_mocked_bindings(
+    .islh_font = function() "BC Sans",
+    .islh_register_screen_font = function(...) TRUE
+  )
+  local_mocked_bindings(
+    ggplotly = function(p, ...) {
+      converted <<- p
+      plotly::plot_ly(x = 1, y = 1)
+    },
+    .package = "plotly"
+  )
+  p <- ggplot2::ggplot(datasets::mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point() +
+    ggplot2::theme(
+      legend.position = "top",
+      axis.text.x = ggplot2::element_text(angle = 45)
+    )
+  original <- p$theme
+  islh_plotly(p, embed_fonts = FALSE)
+  expect_equal(converted$theme$text$family, "BC Sans")
+  expect_equal(converted$theme$legend.position, "top")
+  expect_equal(converted$theme$axis.text.x$angle, 45)
+  expect_equal(converted$theme$panel.grid.minor, theme_islh()$panel.grid.minor)
+  expect_equal(p$theme, original)
+
+  p <- p + ggplot2::theme_minimal(base_family = "serif")
+  original <- p$theme
+  islh_plotly(p, embed_fonts = FALSE)
+  expect_equal(converted$theme, original)
+})
+
+test_that("interactive checks and installation agree on automatic formats", {
+  withr::local_options(knitr.in.progress = FALSE)
+  local_mocked_bindings(.islh_resolve_format = function(...) "plots")
+  check <- islh_check(interactive = TRUE, quiet = TRUE)
+  expect_equal(check$format, "html")
+  expect_contains(check$required, c("plotly", "reactable", "htmlwidgets"))
+  expect_error(
+    islh_check("plots", interactive = TRUE, quiet = TRUE),
+    "requires"
+  )
+
+  withr::local_options(knitr.in.progress = TRUE)
+  expect_error(islh_check(interactive = TRUE, quiet = TRUE), "requires")
+  expect_error(islh_install_deps(interactive = TRUE, quiet = TRUE), "requires")
+
+  local_mocked_bindings(.islh_resolve_format = function(...) "docx")
+  expect_error(islh_check(interactive = TRUE, quiet = TRUE), "requires")
+  expect_error(islh_install_deps(interactive = TRUE, quiet = TRUE), "requires")
+})

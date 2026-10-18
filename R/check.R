@@ -23,6 +23,20 @@
   "plots"
 }
 
+# At the console an interactive request selects HTML. During a render, keep
+# the detected format so a Word or PDF report cannot silently select HTML.
+.islh_resolve_interactive_format <- function(format) {
+  resolved <- .islh_resolve_format(format)
+  if (
+    format == "auto" &&
+      resolved == "plots" &&
+      !isTRUE(getOption("knitr.in.progress", FALSE))
+  ) {
+    return("html")
+  }
+  resolved
+}
+
 # How a format is named in messages: the words staff use, not the codes.
 .islh_format_label <- function(format) {
   labels <- c(
@@ -80,7 +94,8 @@
 #' @param embed_fonts Embed BC Sans in HTML tables.
 #' @param quiet Suppress the human-readable status message.
 #' @param interactive Also check the optional plotly and reactable packages
-#'   for interactive HTML output. Requires `format = "html"`.
+#'   for interactive HTML output. Requires `format = "html"`. With `"auto"`,
+#'   the detected format is used; at the console this selects HTML.
 #'
 #' @return An object of class `islh_dependency_check`, invisibly.
 #' @export
@@ -94,8 +109,13 @@ islh_check <- function(
   quiet = FALSE,
   interactive = FALSE
 ) {
-  format <- .islh_resolve_format(format)
+  format <- match.arg(format)
   interactive <- .islh_check_flag(interactive, "interactive")
+  format <- if (interactive) {
+    .islh_resolve_interactive_format(format)
+  } else {
+    .islh_resolve_format(format)
+  }
   if (interactive && format != "html") {
     .islh_abort("{.arg interactive} requires {.code format = \"html\"}.")
   }

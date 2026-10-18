@@ -97,8 +97,14 @@ check_interactive_report <- function(path) {
           'Suppressed label is missing');
         assert(safeValues.filter(value => value !== 'Suppressed').join(',') ===
           '17,42,105', 'Suppressed counts no longer sort numerically');
+        const customised = document.querySelectorAll('.js-plotly-plot')[3];
+        assert(customised?.layout.xaxis.tickangle === -45,
+          'Partial theme tweak was lost');
+        assert(customised.layout.xaxis.showgrid === false,
+          'Partial theme tweak removed the brand styling');
         return {hover: true, zoom: true, search: true, sort: true,
-          pagination: true, embeddedResources: true, suppression: true};
+          pagination: true, embeddedResources: true, suppression: true,
+          partialTheme: true};
       })()
     }",
     awaitPromise = TRUE,
@@ -148,6 +154,9 @@ check_interactive_report <- function(path) {
                 text.includes('Cases: 2')) {
               if (%d === 2 && !text.includes('area: North')) {
                 throw new Error('Case hover group is incorrect: ' + text);
+              }
+              if ((text.match(/area: North/g) || []).length > 1) {
+                throw new Error('Case hover repeats its facet field: ' + text);
               }
               if (/\.islh_|trace \d/.test(text)) {
                 throw new Error('Case hover exposes internal fields: ' + text);

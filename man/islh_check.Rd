@@ -26,7 +26,8 @@ outside a render it selects plot-only setup.}
 \item{quiet}{Suppress the human-readable status message.}
 
 \item{interactive}{Also check the optional plotly and reactable packages
-for interactive HTML output. Requires \code{format = "html"}.}
+for interactive HTML output. Requires \code{format = "html"}. With \code{"auto"},
+the detected format is used; at the console this selects HTML.}
 
 \item{x}{An \code{islh_dependency_check} object.}
 

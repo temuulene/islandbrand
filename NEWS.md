@@ -11,11 +11,14 @@
   count, respect plot labels, identify reference values, and omit internal
   plotting fields and year-separator tooltips. Case-tile areas show the same
   labels, reference numbers are rounded for display, and existing plot themes
-  are preserved.
+  are preserved. Partial theme tweaks retain the Island Health base styling,
+  and a shared fill/facet field appears only once in hover labels.
 * `islh_reactable()` creates branded HTML tables with search, sorting and
   pagination, with optional column filters and reactable customisation.
   Missing values have an explicit label; the guide shows how to display
   suppressed counts while keeping numeric sorting.
+* Interactive dependency checks and installation both select HTML at the
+  console, while respecting format detection inside a report render.
 
 # islandbrand 0.1.0
 

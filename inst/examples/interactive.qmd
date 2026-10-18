@@ -75,8 +75,23 @@ grouped_counts <- data.frame(
   cases = c(2, 1),
   area = c("North", "South")
 )
-islh_epi_curve(grouped_counts, week, cases, fill = area, style = "cases") |>
+islh_epi_curve(
+  grouped_counts, week, cases, fill = area, facet = area, style = "cases"
+) |>
   islh_plotly(height = 280)
+```
+
+## Customise an ordinary plot
+
+Small theme changes keep the brand styling. This plot rotates its date labels
+without adding a complete theme first.
+
+```{r}
+#| echo: false
+plot <- ggplot2::ggplot(weekly, ggplot2::aes(week, cases)) +
+  ggplot2::geom_point(colour = islh_brand("primary")) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45))
+islh_plotly(plot, height = 280)
 ```
 
 ## Values prepared for release

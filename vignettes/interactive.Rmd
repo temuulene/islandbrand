@@ -39,7 +39,9 @@ islh_setup(format = "html")
 
 The interactive packages are optional. Existing static reports keep their
 current dependencies. To check readiness without installing anything, use
-`islh_check("html", interactive = TRUE)`.
+`islh_check("html", interactive = TRUE)`. At the console, both
+`islh_check(interactive = TRUE)` and `islh_install_deps(interactive = TRUE)`
+select HTML. Automatic detection still rejects Word and PDF renders.
 
 ## Make a plot interactive
 
@@ -76,10 +78,11 @@ separators have no tooltip. With custom plot
 labels, such as `ggplot2::labs(x = "Week starting", y = "Reported cases")`,
 the tooltip uses those labels too.
 
-Ordinary ggplots work too. The helper keeps the plot's theme, layers and scales,
-adds the Island Health theme when the plot has no theme, and puts its title,
-subtitle and caption outside
-the panel so zooming cannot hide them:
+Ordinary ggplots work too. The helper layers partial tweaks, such as
+`theme(legend.position = "top")`, over the Island Health theme. Supplied
+complete themes, including `theme_minimal()` and `theme_islh_map()`, are kept.
+It keeps the plot's layers and scales, and puts its title, subtitle and caption
+outside the panel so zooming cannot hide them:
 
 ```{r scatter}
 p <- ggplot2::ggplot(

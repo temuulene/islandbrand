@@ -236,3 +236,59 @@ test_that("custom total labels read naturally", {
   text <- unlist(lapply(traces, `[[`, "hovertext"))
   expect_contains(text, "Date: 2026-01-04<br>Number of cases (total): 2")
 })
+
+test_that("a shared fill and facet field appears once in the hover label", {
+  skip_if_not_installed("plotly")
+  data <- data.frame(
+    week = as.Date("2026-01-04"),
+    cases = c(2, 1),
+    area = c("North", "South")
+  )
+  for (style in c("bars", "cases")) {
+    p <- islh_epi_curve(
+      data,
+      week,
+      cases,
+      fill = area,
+      facet = area,
+      style = style
+    ) +
+      ggplot2::labs(fill = "Region")
+    traces <- plotly::plotly_build(islh_plotly(p, embed_fonts = FALSE))$x$data
+    text <- unique(unlist(lapply(traces, `[[`, "hovertext")))
+    text <- text[!is.na(text)]
+    expect_setequal(
+      text,
+      c(
+        "Date: 2026-01-04<br>Cases: 2<br>Region: North",
+        "Date: 2026-01-04<br>Cases: 1<br>Region: South"
+      )
+    )
+
+    traces <- plotly::plotly_build(islh_plotly(
+      p,
+      tooltip = "facet",
+      embed_fonts = FALSE
+    ))$x$data
+    text <- unique(unlist(lapply(traces, `[[`, "hovertext")))
+    text <- text[!is.na(text)]
+    expect_setequal(text, c("area: North", "area: South"))
+  }
+})
+
+test_that("both reference limits keep their meaning when sharing a column", {
+  skip_if_not_installed("plotly")
+  data <- data.frame(week = as.Date("2026-01-04") + 7 * 0:1, cases = c(2, 4))
+  reference <- data.frame(week = data$week, limit = c(3, 5))
+  p <- islh_epi_curve(
+    data,
+    week,
+    cases,
+    reference = reference,
+    lower = "limit",
+    upper = "limit"
+  )
+  traces <- plotly::plotly_build(islh_plotly(p, embed_fonts = FALSE))$x$data
+  text <- unlist(lapply(traces, `[[`, "hovertext"))
+  expect_contains(text, "Date: 2026-01-04<br>Lower limit: 3<br>Upper limit: 3")
+})
