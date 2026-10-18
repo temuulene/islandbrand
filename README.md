@@ -21,98 +21,44 @@ which also shows how to draw confidence intervals.
 
 ## Installing
 
-### Approved staff release
-
-Use the Windows release approved by your team lead, paired with the approved
-`islandepi` version. This follows the same release gate as
-[islandepi's staff guide](https://github.com/temuulene/islandepi/blob/main/inst/INSTALL.md):
-release assets appear only after package checks and a clean Windows
-installation pass. A version in DESCRIPTION is not a published release.
-
-Confirm the version is published on the
-[Releases page](https://github.com/temuulene/islandbrand/releases). If there
-is no published version yet, use the development route below for evaluation;
-an approved staff release is not available yet.
-
-In a fresh Windows R session, replace `x.y.z` with that approved, published
-version and run:
-
-```r
-version <- "x.y.z"
-binary <- tempfile(fileext = ".zip")
-download.file(
-  sprintf(
-    "https://github.com/temuulene/islandbrand/releases/download/v%s/islandbrand_%s.zip",
-    version, version
-  ),
-  binary, mode = "wb"
-)
-install.packages(
-  c("cli", "ggplot2", "rlang", "scales", "systemfonts"),
-  type = "binary"
-)
-install.packages(binary, repos = NULL, type = "win.binary")
-stopifnot(as.character(packageVersion("islandbrand")) == version)
-```
-
-The commands download the release automatically and install or update its
-required CRAN packages as Windows binaries. No Rtools, Git client, GitHub
-account, token, or manual ZIP download is needed. Downloading the published
-asset directly also avoids GitHub's shared anonymous API request limit.
-
-Then install the packages your reports need, and restart R:
-
-```r
-islandbrand::islh_install_deps("html")
-```
-
-Use `"docx"` for Word, or `"both"` for HTML and Word. Add
-`interactive = TRUE` only for interactive HTML reports. Update by restarting
-R and rerunning the commands with the newly approved release version.
-Record both package versions and `sessionInfo()` with the report; use a
-project `renv` lockfile when exact dependency versions must be reproduced.
-
-### Development and evaluation from GitHub
-
-To try changes before a release, install the development branch directly.
-This bypasses the release gate and is for evaluation. On Windows:
+On Windows, restart R, then run:
 
 ```r
 install.packages("remotes", type = "binary")
-options(pkgType = "binary")
 remotes::install_github(
   "temuulene/islandbrand",
-  ref = "main",
-  dependencies = NA,
-  upgrade = "always",
-  build = FALSE,
-  build_vignettes = FALSE
+  type = "binary", upgrade = "always", build = FALSE
+)
+islandbrand::islh_install_deps("html")   # or "docx", or "both"
+```
+
+This installs the latest version from GitHub. Its CRAN packages arrive as
+ready-made Windows binaries and `islandbrand` has no code to compile, so you
+do not need Rtools, Git, a GitHub account or a token. Run the same commands
+again to update. For interactive HTML reports, use
+`islh_install_deps("html", interactive = TRUE)`.
+
+To install `islandepi` at the same time, give both names:
+
+```r
+remotes::install_github(
+  c("temuulene/islandepi", "temuulene/islandbrand"),
+  type = "binary", upgrade = "always", build = FALSE
 )
 ```
 
-`upgrade = "always"` updates required dependencies, including an installed
-ggplot2 older than the minimum version. On Windows they remain prebuilt CRAN
-binaries. To reproduce a reviewed development revision, replace `"main"`
-with its full commit identifier; for a released revision use its actual
-published tag. Unauthenticated GitHub API installs can share a rate limit
-on a workplace network, so use the direct release download for staff rollout.
+If GitHub answers "API rate limit exceeded", many people on the same network
+have installed within the hour. Wait an hour, or use a release file below.
 
-The package itself has no compiled code. The development install also skips
-building documentation articles locally, so neither Rtools nor Pandoc or
-Quarto is needed for installation. The
-[online guides](https://temuulene.github.io/islandbrand/) are available to
-staff. Install Quarto separately to render Quarto reports.
+### A specific version, or no access to GitHub
 
-### Offline installation
+To install a version your team has approved, add its tag from the
+[Releases page](https://github.com/temuulene/islandbrand/releases) to the
+name, such as `"temuulene/islandbrand@vX.Y.Z"`.
 
-Ask your team lead which version is approved, and get the Windows `.zip` for
-it. Each published release attaches one on the
-[Releases page](https://github.com/temuulene/islandbrand/releases), with a
-`.tar.gz` source package. Until a version is published there, the team lead
-provides the file. No token, GitHub account or compiler is needed.
-
-R must load the packages `islandbrand` is built on before any of its
-functions can run, so install those first, then the file:
+Without GitHub access, get the Windows `.zip` for the approved version from
+your team lead or the Releases page. Install the packages `islandbrand` is
+built on first, then the file:
 
 ```r
 install.packages(
@@ -120,18 +66,15 @@ install.packages(
   type = "binary"
 )
 install.packages("path/to/islandbrand_x.y.z.zip", repos = NULL)
+islandbrand::islh_install_deps("html")   # or "docx", or "both"
 ```
 
-Replace `x.y.z` with the approved version. PHASE staff can instead use
-`install-phase.R` from the paired
-[islandepi release](https://github.com/temuulene/islandepi/releases). It does
-both steps, checks the version, and confirms the package loads.
+PHASE staff can instead use `install-phase.R` from the paired
+[islandepi release](https://github.com/temuulene/islandepi/releases), which
+also checks the version and confirms the package loads.
 
-Then install the packages your output format needs, and restart R:
-
-```r
-islandbrand::islh_install_deps("html")   # "docx", or "both"
-```
+Record both package versions and `sessionInfo()` with each report. To render
+Quarto reports, install Quarto separately.
 
 ## Choose the function
 

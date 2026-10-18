@@ -1,8 +1,10 @@
 # islandbrand (development version)
 
-* Staff installation downloads an approved, checked Windows release from
-  GitHub automatically. Development installation is documented separately
-  and updates outdated dependencies. Neither route requires Rtools.
+* Staff can install directly from GitHub with one `remotes::install_github()`
+  command, alone or together with `islandepi`. Dependencies arrive as Windows
+  binaries, outdated ones are updated, and no Rtools is needed. A release tag
+  installs an approved version, and release files remain for computers
+  without GitHub access.
 * `islh_check()` and `islh_install_deps()` accept `interactive = TRUE` to
   check or install the optional interactive HTML packages.
 * `islh_plotly()` turns existing ggplots, including epidemic curves, into

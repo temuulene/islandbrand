@@ -26,26 +26,24 @@ function to use for each task.
 
 ## Before you start
 
-Follow the README's
-[approved staff release instructions](https://github.com/temuulene/islandbrand#approved-staff-release)
-to download and install the approved Windows binary automatically. Use the
-version paired with your approved `islandepi` version. Release assets are
-published only after checks and clean installation pass; if none is
-published yet, use the clearly marked development route only for evaluation.
-
-Then install the packages for your report format:
+On Windows, restart R, then install the package from GitHub and the packages
+your report format needs:
 
 ```{r install, eval=FALSE}
-islandbrand::islh_install_deps("html")
+install.packages("remotes", type = "binary")
+remotes::install_github(
+  "temuulene/islandbrand",
+  type = "binary", upgrade = "always", build = FALSE
+)
+islandbrand::islh_install_deps("html")   # or "docx", or "both"
 ```
 
-Restart R after installation. The commands use Windows binaries, so Rtools
-is not needed. No GitHub account, token or Git client is required.
-
-Use `"docx"` for Word or `"both"` for HTML and Word. Add
-`interactive = TRUE` only if you need the optional interactive HTML helpers;
-static and Word reports do not need those packages. The README also covers
-updating to an approved version and offline installation.
+No Rtools, Git, GitHub account or token is needed. Run the same commands
+again to update. Add `interactive = TRUE` to `islh_install_deps()` only if
+you need the interactive HTML helpers. The
+[README](https://github.com/temuulene/islandbrand#installing) shows how to
+install `islandepi` at the same time, a specific version, or a release file
+without GitHub access.
 
 `islh_check("html")` or `islh_check("docx")` reports anything still missing.
 
