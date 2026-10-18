@@ -5,10 +5,12 @@ Authors@R:
     person("Temuulen", "Enebish", , "temuulen@gmail.com", role = c("aut", "cre"))
 Description: Applies Island Health brand colours, typography and layout to
     ggplot2 figures, including epidemic curves and surveillance graphics,
-    flextable and gt tables, and Quarto HTML and Word reports. Includes project
+    flextable and gt tables, interactive plotly figures and reactable tables,
+    and Quarto HTML and Word reports. Includes project
     scaffolding for reproducible reports used by the PHASE team.
 License: file LICENSE
 Encoding: UTF-8
+NeedsCompilation: no
 Language: en-CA
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
@@ -32,11 +34,14 @@ Suggests:
     gt,
     gtsummary (>= 2.0.3),
     htmltools,
+    htmlwidgets,
     knitr,
     officer,
     patchwork,
+    plotly,
     ragg,
     rmarkdown,
+    reactable,
     sf,
     testthat (>= 3.0.0),
     withr,

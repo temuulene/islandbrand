@@ -9,7 +9,8 @@ islh_check(
   format = c("auto", "html", "docx", "plots"),
   tables = TRUE,
   embed_fonts = TRUE,
-  quiet = FALSE
+  quiet = FALSE,
+  interactive = FALSE
 )
 
 \method{print}{islh_dependency_check}(x, ...)
@@ -23,6 +24,9 @@ outside a render it selects plot-only setup.}
 \item{embed_fonts}{Embed BC Sans in HTML tables.}
 
 \item{quiet}{Suppress the human-readable status message.}
+
+\item{interactive}{Also check the optional plotly and reactable packages
+for interactive HTML output. Requires \code{format = "html"}.}
 
 \item{x}{An \code{islh_dependency_check} object.}
 

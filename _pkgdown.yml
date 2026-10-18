@@ -19,6 +19,8 @@ navbar:
           href: articles/surveillance.html
         - text: Writing reports
           href: articles/reports.html
+        - text: Interactive HTML reports
+          href: articles/interactive.html
         - text: Mapping health geographies
           href: articles/maps.html
         - text: Moving from the theme script
@@ -31,6 +33,7 @@ articles:
   - title: Reports
     contents:
       - reports
+      - interactive
       - migrating
   - title: Maps
     contents:
@@ -88,6 +91,12 @@ reference:
       - islh_area_labels
       - islh_example_lha
       - islh_caption
+
+  - title: Interactive HTML output
+    desc: Create interactive plots and searchable tables for HTML reports.
+    contents:
+      - islh_plotly
+      - islh_reactable
 
   - title: Colours and assets
     contents:

@@ -1,0 +1,54 @@
+---
+title: "Weekly surveillance report"
+format:
+  html:
+    embed-resources: true
+    toc: true
+lang: en-CA
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(islandbrand)
+islh_setup(format = "html", quiet = TRUE)
+
+weekly <- data.frame(
+  week = seq(as.Date("2026-01-04"), by = "week", length.out = 12),
+  cases = c(10, 12, 18, 29, 40, 52, 45, 31, 24, 18, 14, 10)
+)
+```
+
+## Weekly pattern
+
+Cases peak in the sixth week and then decrease. Hover over a bar for values,
+drag to zoom, and double-click to reset.
+
+```{r}
+#| echo: false
+islh_epi_curve(
+  weekly, date = week, count = cases,
+  title = "Reported cases by week",
+  subtitle = "Simulated surveillance counts",
+  caption = "Source: simulated example data"
+) |>
+  islh_plotly(height = 380)
+```
+
+## Weekly counts
+
+Search for a week, click a column heading to sort, or move between pages.
+
+```{r}
+#| echo: false
+islh_reactable(
+  weekly,
+  title = "Weekly counts",
+  columns = list(
+    week = reactable::colDef(name = "Week starting"),
+    cases = reactable::colDef(name = "Reported cases")
+  ),
+  page_size = 5,
+  source_note = "Source: simulated example data"
+)
+```

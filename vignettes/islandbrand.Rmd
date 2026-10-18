@@ -26,35 +26,30 @@ function to use for each task.
 
 ## Before you start
 
-Install the package once per computer, in this order:
+Install the public package directly from GitHub. On Windows, run:
 
-1. The packages `islandbrand` is built on. R loads them before any
-   `islandbrand` function can run, so no `islandbrand` function can install
-   them for you:
+```{r install, eval=FALSE}
+install.packages("remotes", type = "binary")
+options(pkgType = "binary")
+remotes::install_github(
+  "temuulene/islandbrand",
+  dependencies = NA, upgrade = "never",
+  build = FALSE, build_vignettes = FALSE
+)
+islandbrand::islh_install_deps("html", interactive = TRUE)
+```
 
-   ```r
-   install.packages(
-     c("cli", "ggplot2", "rlang", "scales", "systemfonts"),
-     type = "binary"
-   )
-   ```
+Restart R after installation. The package has no compiled code, and the
+commands use prebuilt CRAN dependencies, so Rtools is not needed. The public
+repository needs no GitHub account, token or Git client. Local article
+building is skipped; read the guides on the package website.
 
-2. `islandbrand` itself, from the approved Windows `.zip` your team lead
-   gives you, or from a published
-   [release](https://github.com/temuulene/islandbrand/releases):
-
-   ```r
-   install.packages("path/to/islandbrand_x.y.z.zip", repos = NULL)
-   ```
-
-   PHASE staff can use `install-phase.R` from the paired `islandepi` release,
-   which does steps 1 and 2 and checks the result.
-
-3. What your output format needs, then restart R:
-
-   ```r
-   islandbrand::islh_install_deps("html")   # "docx", or "both"
-   ```
+Use `"docx"` for Word or `"both"` for HTML and Word. Omit
+`interactive = TRUE` for static reports. If a team lead specifies a release,
+append its tag to the repository name, such as
+`"temuulene/islandbrand@v0.1.0"`. Update by restarting R and rerunning the
+same installation command. The README also describes offline installation
+from a release ZIP when GitHub cannot be reached.
 
 `islh_check("html")` or `islh_check("docx")` reports anything still missing.
 
@@ -64,6 +59,8 @@ Install the package once per computer, in this order:
 |---|---|---|
 | Configure a report | `islh_setup()` | Plot and table defaults for the current format |
 | Make a branded plot | `theme_islh()` and a `scale_*_islh()` function | A ggplot object |
+| Make an interactive HTML plot | `islh_plotly()` | A Plotly widget |
+| Make a searchable HTML table | `islh_reactable()` | A reactable widget |
 | Make an HTML table | `islh_gt()` | A `gt` table |
 | Make a Word table | `islh_flextable()` | A `flextable` object |
 | Start a report project | `islh_create_report()` | A ready-to-render Quarto project |

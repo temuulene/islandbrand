@@ -83,7 +83,9 @@
 #' the function cannot tell an absent row from a period nobody reported on.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))
+#' }
 #' curve_data <- data.frame(
 #'   week = seq(as.Date("2026-01-04"), by = "week", length.out = 12),
 #'   cases = c(1, 2, 3, 5, 8, 13, 10, 7, 5, 3, 2, 1),
@@ -224,11 +226,14 @@ islh_epi_curve <- function(
         "-01-01"
       ))
       plot <- plot +
-        ggplot2::geom_vline(
-          xintercept = year_starts,
-          colour = islh_hex("grey", 40),
-          linewidth = 0.35,
-          linetype = "dashed"
+        .islh_epi_layer(
+          ggplot2::geom_vline(
+            xintercept = year_starts,
+            colour = islh_hex("grey", 40),
+            linewidth = 0.35,
+            linetype = "dashed"
+          ),
+          kind = "skip"
         )
     }
   }
@@ -261,7 +266,16 @@ islh_epi_curve <- function(
       bar_args$fill <- islh_brand("primary")
     }
     bar <- do.call(ggplot2::geom_col, bar_args)
-    plot <- plot + bar
+    plot <- plot +
+      .islh_epi_layer(
+        bar,
+        fields = c(
+          x = date_name,
+          y = count_name,
+          fill = fill_name,
+          facet = facet_name
+        )
+      )
   } else {
     if (position != "stack") {
       .islh_abort("{.code style = \"cases\"} only supports stacked groups.")
@@ -288,7 +302,10 @@ islh_epi_curve <- function(
       )
     }
     plot <- plot +
-      ggplot2::geom_blank(data = skeleton, mapping = skeleton_mapping)
+      .islh_epi_layer(
+        ggplot2::geom_blank(data = skeleton, mapping = skeleton_mapping),
+        kind = "skip"
+      )
     case_data <- .islh_expand_cases(
       plot_data,
       date_name = date_name,
@@ -318,7 +335,16 @@ islh_epi_curve <- function(
       case_args$fill <- islh_brand("primary")
     }
     cases <- do.call(ggplot2::geom_tile, case_args)
-    plot <- plot + cases
+    plot <- plot +
+      .islh_epi_layer(
+        cases,
+        fields = c(
+          x = date_name,
+          y = count_name,
+          fill = fill_name,
+          facet = facet_name
+        )
+      )
   }
 
   if (!is.null(fill_name)) {
@@ -332,6 +358,7 @@ islh_epi_curve <- function(
       count_name = count_name,
       facet_name = facet_name
     )
+    total_dates <- totals$.islh_date
     totals$.islh_date <- totals$.islh_date + offset
     label_mapping <- ggplot2::aes(
       x = .data$.islh_date,
@@ -339,18 +366,23 @@ islh_epi_curve <- function(
       label = .data$.islh_total
     )
     plot <- plot +
-      ggplot2::geom_text(
-        data = totals,
-        mapping = label_mapping,
-        inherit.aes = FALSE,
-        vjust = -0.35,
-        # 11 pt bold: read at a glance, and a step below the 12 pt axis text
-        # of the default theme so the totals do not compete with the title.
-        size = 11,
-        size.unit = "pt",
-        fontface = "bold",
-        family = .islh_font(),
-        colour = islh_brand("black")
+      .islh_epi_layer(
+        ggplot2::geom_text(
+          data = totals,
+          mapping = label_mapping,
+          inherit.aes = FALSE,
+          vjust = -0.35,
+          # 11 pt bold: read at a glance, and a step below the 12 pt axis text
+          # of the default theme so the totals do not compete with the title.
+          size = 11,
+          size.unit = "pt",
+          fontface = "bold",
+          family = .islh_font(),
+          colour = islh_brand("black")
+        ),
+        fields = c(x = ".islh_date", y = ".islh_total", facet = facet_name),
+        kind = "total",
+        dates = total_dates
       )
   }
 
@@ -407,6 +439,18 @@ islh_epi_curve <- function(
   }
 
   plot
+}
+
+# Preserve the meaning of each layer before positions are adjusted for drawing.
+# Optional HTML conversion reads this record; static plots are unaffected.
+.islh_epi_layer <- function(
+  layer,
+  fields = character(),
+  kind = "count",
+  dates = NULL
+) {
+  attr(layer, "islh_hover") <- list(fields = fields, kind = kind, dates = dates)
+  layer
 }
 
 .islh_plot_column <- function(
@@ -596,6 +640,7 @@ islh_epi_curve <- function(
     call = call
   )
   # Reference values describe a whole period, so they sit mid-bar.
+  reference_dates <- reference[[reference_date]]
   reference[[reference_date]] <- reference[[reference_date]] + offset
 
   fields <- list(
@@ -646,16 +691,28 @@ islh_epi_curve <- function(
         call = call
       )
     }
-    ribbon <- ggplot2::geom_ribbon(
-      data = reference,
-      mapping = ggplot2::aes(
-        x = .data[[reference_date]],
-        ymin = .data[[lower]],
-        ymax = .data[[upper]]
+    ribbon <- .islh_epi_layer(
+      ggplot2::geom_ribbon(
+        data = reference,
+        mapping = ggplot2::aes(
+          x = .data[[reference_date]],
+          ymin = .data[[lower]],
+          ymax = .data[[upper]]
+        ),
+        inherit.aes = FALSE,
+        fill = islh_hex("grey", 90),
+        alpha = 0.7
       ),
-      inherit.aes = FALSE,
-      fill = islh_hex("grey", 90),
-      alpha = 0.7
+      fields = c(
+        x = reference_date,
+        ymin = lower,
+        ymax = upper,
+        facet = if (!is.null(facet_name) && facet_name %in% names(reference)) {
+          facet_name
+        }
+      ),
+      kind = "reference",
+      dates = reference_dates
     )
   }
 
@@ -671,17 +728,28 @@ islh_epi_curve <- function(
         call = call
       )
     }
-    line <- ggplot2::geom_line(
-      data = reference,
-      mapping = ggplot2::aes(
-        x = .data[[reference_date]],
-        y = .data[[reference_mean]],
-        group = 1
+    line <- .islh_epi_layer(
+      ggplot2::geom_line(
+        data = reference,
+        mapping = ggplot2::aes(
+          x = .data[[reference_date]],
+          y = .data[[reference_mean]],
+          group = 1
+        ),
+        inherit.aes = FALSE,
+        colour = islh_hex("grey", 40),
+        linewidth = 0.65,
+        linetype = "dashed"
       ),
-      inherit.aes = FALSE,
-      colour = islh_hex("grey", 40),
-      linewidth = 0.65,
-      linetype = "dashed"
+      fields = c(
+        x = reference_date,
+        y = reference_mean,
+        facet = if (!is.null(facet_name) && facet_name %in% names(reference)) {
+          facet_name
+        }
+      ),
+      kind = "reference",
+      dates = reference_dates
     )
   }
 
@@ -776,7 +844,10 @@ islh_epi_curve <- function(
     .islh_abort(
       c(
         "{.code style = \"cases\"} would draw {total} rectangles.",
-        i = "Use {.code style = \"bars\"} or increase {.arg max_cases} explicitly."
+        i = paste0(
+          "Use {.code style = \"bars\"} or increase ",
+          "{.arg max_cases} explicitly."
+        )
       ),
       call = call
     )

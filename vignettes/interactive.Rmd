@@ -1,0 +1,198 @@
+---
+title: "Interactive HTML reports"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Interactive HTML reports}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(islandbrand)
+options(islh.embed_fonts = FALSE)
+widgets_available <- requireNamespace("plotly", quietly = TRUE) &&
+  requireNamespace("reactable", quietly = TRUE)
+knitr::opts_chunk$set(eval = widgets_available)
+```
+
+Use `islh_plotly()` to add hover labels and zoom to an existing ggplot, and
+`islh_reactable()` to give a data frame search, sorting and pagination. Both
+return ordinary HTML widgets. They run in the reader's browser without a
+server, an online account or an internet connection when resources are
+embedded in the report.
+
+## Set up once
+
+Install the optional packages, then restart R:
+
+```{r install, eval=FALSE}
+islandbrand::islh_install_deps("html", interactive = TRUE)
+```
+
+At the top of your report:
+
+```{r report-setup, eval=FALSE}
+library(islandbrand)
+islh_setup(format = "html")
+```
+
+The interactive packages are optional. Existing static reports keep their
+current dependencies. To check readiness without installing anything, use
+`islh_check("html", interactive = TRUE)`.
+
+## Make a plot interactive
+
+Start with prepared counts, such as those returned by
+`islandepi::islh_count_events()`. This example uses simulated weekly counts:
+
+```{r counts}
+weekly <- data.frame(
+  week = seq(as.Date("2026-01-04"), by = "week", length.out = 12),
+  cases = c(10, 12, 18, 29, 40, 52, 45, 31, 24, 18, 14, 10)
+)
+
+p <- islh_epi_curve(
+  weekly, date = week, count = cases,
+  title = "Reported cases by week",
+  subtitle = "Simulated surveillance counts",
+  caption = "Source: simulated example data"
+)
+```
+
+```{r interactive-curve}
+islh_plotly(p, height = 380)
+```
+
+Hover over a bar to see its values. Drag to zoom into a date range and
+double-click to reset. With grouped plots, click the legend to hide or show a
+series. Page scrolling stays enabled when the pointer is over the plot.
+
+Hover labels show the original reporting date and the count for that period
+and group. The bar's centre is offset for drawing; it is not the reporting
+date. The same labels apply to case tiles. Reference bands and lines identify
+their limits or mean, and year separators have no tooltip. With custom plot
+labels, such as `ggplot2::labs(x = "Week starting", y = "Reported cases")`,
+the tooltip uses those labels too.
+
+Ordinary ggplots work too. The helper applies the Island Health theme, keeps
+the plot's layers and scales, and puts its title, subtitle and caption outside
+the panel so zooming cannot hide them:
+
+```{r scatter}
+p <- ggplot2::ggplot(
+  datasets::mtcars, ggplot2::aes(wt, mpg)
+) +
+  ggplot2::geom_point(colour = islh_brand("primary")) +
+  ggplot2::labs(
+    title = "Fuel economy by vehicle weight",
+    x = "Weight (1,000 lb)", y = "Miles per US gallon"
+  )
+
+islh_plotly(p, tooltip = c("x", "y"), height = 340)
+```
+
+You can continue with `plotly::layout()` or `plotly::config()`. Plotly's
+conversion does not support every extension geom, map coordinate system or
+theme feature. Check the result before sharing; retain a static ggplot for
+figures that do not convert well. Interactive plots also need a text summary
+or accompanying table for readers who cannot use hover or drag controls.
+
+## Make a table interactive
+
+```{r interactive-table}
+islh_reactable(
+  weekly, title = "Weekly counts",
+  source_note = "Source: simulated example data",
+  page_size = 5, filterable = TRUE
+)
+```
+
+Type in the search box, click a column heading to sort, or move between pages.
+Column filters are optional; search, sorting and pagination are enabled by
+default. Missing values display as `n/a`.
+
+Pass standard reactable arguments for more control. Numeric values remain
+numeric, so formatting does not change their sort order:
+
+```{r formatted-table}
+islh_reactable(
+  weekly,
+  title = "Most recent weeks first",
+  columns = list(
+    week = reactable::colDef(name = "Week starting"),
+    cases = reactable::colDef(
+      name = "Reported cases",
+      format = reactable::colFormat(digits = 0, separators = TRUE)
+    )
+  ),
+  defaultSorted = list(week = "desc"),
+  page_size = 5
+)
+```
+
+Use `groupBy = "area"` to group rows when the data has an `area` column.
+Titles and source notes are plain text. Cell values are escaped by default;
+enable `html = TRUE` in a column definition only for trusted markup.
+
+## Share a complete report
+
+In Quarto, set `embed-resources: true` so scripts, styles and fonts travel in
+one HTML file. The package's `islh-report-html` format already sets this.
+For R Markdown use `html_document` with `self_contained: true`.
+
+Put each widget in its own chunk, as the last expression; do not wrap it in
+`print()` or use `results: asis`. To use the complete Quarto example:
+
+```{r example-path, eval=FALSE}
+file.copy(
+  system.file("examples", "interactive.qmd", package = "islandbrand"),
+  "interactive.qmd"
+)
+```
+
+Open that file and render it to HTML. Fonts follow the `islh_setup()` setting:
+installed BC Sans faces are embedded by default, with a warning and fallback
+when unavailable. Use `embed_fonts = FALSE` to omit font embedding when every
+reader already has the font or file size matters. This guide omits embedded
+fonts to keep the package documentation small.
+
+For a single standalone widget:
+
+```{r save, eval=FALSE}
+htmlwidgets::saveWidget(
+  islh_reactable(weekly, title = "Weekly counts"),
+  "weekly-counts.html", selfcontained = TRUE
+)
+```
+
+## Reports that also render to Word
+
+Interactive widgets require HTML. Choose a static output for the other
+format; the helpers give a clear error if used during a non-HTML render:
+
+```{r multiple-formats, eval=FALSE}
+if (knitr::is_html_output()) {
+  islh_plotly(p)
+} else {
+  p
+}
+```
+
+```{r multiple-table-formats, eval=FALSE}
+if (knitr::is_html_output()) {
+  islh_reactable(weekly)
+} else {
+  islh_flextable(weekly)
+}
+```
+
+## Prepare values before sharing
+
+The HTML contains the data supplied to each widget, including hidden columns,
+rows on other pages and values omitted from hover labels. Hiding a field does
+not remove it from the file. Select the intended columns and apply approved
+suppression rules before creating a widget. For example, use
+`islandepi::islh_suppress_table()` for counts and linked rates, then select
+only the resulting display columns. These helpers do not infer suppression
+thresholds or authorise data for release.

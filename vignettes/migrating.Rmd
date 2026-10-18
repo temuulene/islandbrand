@@ -38,30 +38,24 @@ of the next time you download a ZIP.
 
 ## Install the package
 
-On an Island Health laptop, install the approved version from its Windows
-`.zip`, from your team lead or the
-[Releases page](https://github.com/temuulene/islandbrand/releases). R loads
-the packages `islandbrand` is built on before any of its functions can run,
-so install those first:
-
-```{r install-file, eval=FALSE}
-install.packages(
-  c("cli", "ggplot2", "rlang", "scales", "systemfonts"),
-  type = "binary"
-)
-install.packages("path/to/islandbrand_x.y.z.zip", repos = NULL)
-islandbrand::islh_install_deps("docx") # or "html", or "both"
-```
-
-Replace `x.y.z` with the approved version, then restart R. PHASE staff can
-instead use `install-phase.R` from the paired `islandepi` release.
-
-On a development machine with access to GitHub:
+Install directly from the public GitHub repository. On Windows:
 
 ```{r install-package, eval=FALSE}
 install.packages("remotes", type = "binary")
-remotes::install_github("temuulene/islandbrand")
+options(pkgType = "binary")
+remotes::install_github(
+  "temuulene/islandbrand",
+  dependencies = NA, upgrade = "never",
+  build = FALSE, build_vignettes = FALSE
+)
+islandbrand::islh_install_deps("docx") # or "html", or "both"
 ```
+
+Restart R afterwards. The package has no compiled code, and its CRAN
+dependencies install as binaries; Rtools is not needed. A Git client and
+GitHub account are not needed either. If the team uses an approved release,
+append its tag, such as `"temuulene/islandbrand@v0.1.0"`. The README keeps
+the release-ZIP route for computers that cannot reach GitHub.
 
 ## Move a project, safely
 

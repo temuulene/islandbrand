@@ -152,3 +152,17 @@ test_that("the README installs every import before the package file", {
   )[[1]])
   expect_equal(listed, imports)
 })
+
+test_that("the package declares that no compilation is required", {
+  description <- test_path("..", "..", "DESCRIPTION")
+  skip_if_not(file.exists(description))
+  expect_equal(
+    unname(read.dcf(description, fields = "NeedsCompilation")[1, 1]),
+    "no"
+  )
+  expect_equal(dir.exists(test_path("..", "..", "src")), FALSE)
+  expect_equal(
+    any(file.exists(test_path("..", "..", c("configure", "configure.win")))),
+    FALSE
+  )
+})

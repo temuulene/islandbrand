@@ -1,3 +1,18 @@
+# islandbrand (development version)
+
+* Installation directly from public GitHub is now the primary documented
+  route. Windows dependencies use binaries, and the package requires no
+  compilation or Rtools. A clean installation check covers this route.
+* `islh_check()` and `islh_install_deps()` accept `interactive = TRUE` to
+  check or install the optional interactive HTML packages.
+* `islh_plotly()` turns existing ggplots, including epidemic curves, into
+  branded interactive HTML plots with hover, zoom and legend controls.
+  Epidemic-curve tooltips use the reporting period's start date and group
+  count, respect plot labels, identify reference values, and omit internal
+  plotting fields and year-separator tooltips.
+* `islh_reactable()` creates branded HTML tables with search, sorting and
+  pagination, with optional column filters and reactable customisation.
+
 # islandbrand 0.1.0
 
 First public release. It includes:

@@ -6,7 +6,8 @@
 \usage{
 islh_install_deps(
   format = c("auto", "html", "docx", "plots", "both"),
-  quiet = FALSE
+  quiet = FALSE,
+  interactive = FALSE
 )
 }
 \arguments{
@@ -17,6 +18,9 @@ either.}
 
 \item{quiet}{Suppress the status messages. A warning that packages are
 still not ready after installing is given either way.}
+
+\item{interactive}{Also install optional plotly and reactable dependencies.
+Use with \code{format = "html"} or \code{format = "both"}.}
 }
 \value{
 The packages it tried to install, invisibly. After installing, it

@@ -79,6 +79,8 @@
 #' @param tables Configure table packages for the selected format.
 #' @param embed_fonts Embed BC Sans in HTML tables.
 #' @param quiet Suppress the human-readable status message.
+#' @param interactive Also check the optional plotly and reactable packages
+#'   for interactive HTML output. Requires `format = "html"`.
 #'
 #' @return An object of class `islh_dependency_check`, invisibly.
 #' @export
@@ -89,21 +91,29 @@ islh_check <- function(
   format = c("auto", "html", "docx", "plots"),
   tables = TRUE,
   embed_fonts = TRUE,
-  quiet = FALSE
+  quiet = FALSE,
+  interactive = FALSE
 ) {
   format <- .islh_resolve_format(format)
+  interactive <- .islh_check_flag(interactive, "interactive")
+  if (interactive && format != "html") {
+    .islh_abort("{.arg interactive} requires {.code format = \"html\"}.")
+  }
   tables <- .islh_check_flag(tables, "tables") && format != "plots"
   embed_fonts <- .islh_check_flag(embed_fonts, "embed_fonts") &&
     format == "html" &&
-    tables
+    (tables || interactive)
   quiet <- .islh_check_flag(quiet, "quiet")
 
   required <- c("ggplot2", "cli", "scales", "systemfonts")
+  if (interactive) {
+    required <- c(required, "plotly", "reactable", "htmlwidgets", "htmltools")
+  }
   if (tables && format == "html") {
     required <- c(required, "gt")
-    if (embed_fonts) {
-      required <- c(required, "base64enc")
-    }
+  }
+  if (embed_fonts) {
+    required <- c(required, "base64enc")
   }
   if (tables && format == "docx") {
     required <- c(required, "flextable", "officer")
