@@ -61,14 +61,15 @@ check_github_install <- function(repo, candidate = NULL) {
     message("Starting with ggplot2 below the required minimum.")
   }
   if (is.null(candidate)) {
-    # The README command, plus a clean library and no token.
+    # The README command, into a clean library. The workflow's GITHUB_PAT is
+    # used only because hosted runners share GitHub's anonymous allowance of
+    # 60 requests an hour per address; staff need no token.
     remotes::install_github(
       repo,
       type = "binary",
       upgrade = "always",
       build = FALSE,
       lib = library,
-      auth_token = NULL,
       quiet = TRUE
     )
     message("Public GitHub installation completed without compiler tools.")
