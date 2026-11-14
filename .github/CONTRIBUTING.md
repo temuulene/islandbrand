@@ -1,8 +1,10 @@
 # Contributing
 
-Guidance for working in this repository.
+Thank you for helping with `islandbrand`. This guide explains how the package
+is put together and what a change needs before it is merged. Open an issue
+first for anything larger than a small fix, so the approach can be agreed.
 
-## What this repo is
+## About the package
 
 `islandbrand` is an internal R package that applies Island Health branding to
 ggplot2 figures, `flextable`/`gt` tables, and Quarto HTML and Word reports.
@@ -114,7 +116,7 @@ Pandoc actually emits exists, swaps in the official ISLH Office theme from
 `data-raw/theme1.xml` (lifted verbatim from the letterhead template), and
 applies style overrides on top.
 
-Gotchas found the hard way, all handled — don't undo them:
+Details the build script already handles, which a change should keep:
 
 - The script needs `pandoc` and Python's `lxml`.
 - Pandoc's reference doc *used* to ship an empty self-closing `<w:sectPr/>`.
@@ -138,11 +140,11 @@ To verify a change, render and look at it rather than trusting the XML:
 ```bash
 pandoc test.md -o out.docx --reference-doc=inst/quarto/_extensions/islh/islh-report/islh-report-reference.docx
 libreoffice --headless --convert-to pdf out.docx
-pdftoppm -png -r 100 out.pdf page      # then read the PNG
+pdftoppm -png -r 100 out.pdf page      # then open the PNG
 ```
 
-BC Sans will not be installed in a sandbox, so rendered text there shows a
-substituted font. That is expected, not a bug in the template.
+On a computer without BC Sans, such as a build server, the rendered text
+shows a substituted font. That is expected, not a fault in the template.
 
 ### `inst/brand/tokens.json`
 
