@@ -33,7 +33,7 @@ articles:
   - title: Reports
     contents:
       - reports
-      - interactive
+      - articles/interactive
       - migrating
   - title: Maps
     contents:
