@@ -4,11 +4,13 @@
 # Staff who cannot reach GitHub from R install from these instead: the
 # packages islandbrand is built on first, then the .zip. See the README.
 #
-# Tag-driven only. A manual run has no tag to attach assets to, so the
-# publish job would have nowhere to put them.
+# A tag builds, checks and publishes a release. A manual run does everything
+# except publish: it is a rehearsal, and leaves the built files on the run
+# page as artefacts.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 name: release
 
@@ -32,12 +34,13 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # A tag that disagrees with DESCRIPTION produces a release whose assets
       # are named for a different version than the tag says. Catch it here
       # rather than after staff have downloaded it.
       - name: Check the tag matches DESCRIPTION
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           tag="${GITHUB_REF#refs/tags/v}"
           described=$(grep '^Version:' DESCRIPTION | sed 's/Version: *//')
@@ -192,10 +195,59 @@ jobs:
             *_windows-dependencies.csv
           if-no-files-found: error
 
-  # Runs only when every build job above passed, so one runner cannot publish
-  # while the other fails.
-  publish:
+  # Staff are moving from R 4.4 to the current release. The ZIP is built on
+  # 4.4.1, so the same file is installed on the current R as well, into an
+  # empty library, before anything is published.
+  install-current:
     needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-zip
+      - name: Clean install on the current R
+        shell: bash
+        run: |
+          clean="$RUNNER_TEMP/clean-library"
+          mkdir -p "$clean"
+          R_LIBS="" R_LIBS_SITE="" R_LIBS_USER="$clean" Rscript --vanilla -e '
+            options(repos = c(CRAN = "https://cloud.r-project.org"))
+            lib <- Sys.getenv("R_LIBS_USER")
+            .libPaths(c(lib, .libPaths()))
+            version <- read.dcf("DESCRIPTION")[1, "Version"]
+
+            imports <- read.dcf("DESCRIPTION", fields = "Imports")[1, 1]
+            imports <- trimws(sub("\\(.*", "", strsplit(imports, ",")[[1]]))
+            base <- rownames(installed.packages(priority = "base"))
+            install.packages(setdiff(imports, base), lib = lib, type = "binary")
+            install.packages(
+              Sys.glob("islandbrand_*.zip"),
+              lib = lib,
+              repos = NULL,
+              type = "win.binary"
+            )
+            stopifnot(
+              as.character(packageVersion("islandbrand", lib.loc = lib)) == version
+            )
+            library(islandbrand, lib.loc = lib)
+            plot <- islh_epi_curve(
+              data.frame(week = as.Date("2026-01-04") + 7 * 0:3, n = c(1, 3, 2, 0)),
+              week,
+              n
+            )
+            invisible(ggplot2::ggplot_build(plot))
+            message("islandbrand ", version, " installed on ", R.version.string)
+          '
+
+  # Publishes only for a tag, and only when every job above passed, so one
+  # runner cannot publish while another fails.
+  publish:
+    needs: [build, install-current]
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
