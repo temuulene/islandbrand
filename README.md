@@ -225,3 +225,11 @@ ggplot(map_data, aes(fill = population)) +
 The population resource covers all of BC. The boundary helper defaults to
 Island Health, so population rows from other health authorities are expected
 to be discarded by this join.
+
+## Maintenance
+
+Temuulen Enebish, of the PHASE team, maintains `islandbrand` and makes its
+releases. Report a problem or ask for a change on the
+[issue tracker](https://github.com/temuulene/islandbrand/issues). The
+[contributing guide](https://github.com/temuulene/islandbrand/blob/main/.github/CONTRIBUTING.md)
+describes how a release is made.

@@ -153,11 +153,21 @@ which is the single source of truth for brand hexes. `inst/brand/_brand.yml`
 and the Word reference doc both derive from it. `test-brand-tokens.R` fails if
 the three drift apart.
 
-## Versioning
+## Maintenance and releases
+
+Temuulen Enebish maintains the package, reviews changes and makes the
+releases.
 
 `DESCRIPTION`'s `Version:` is the only version string; `islh_version()` reads
-it. Bumping a version means editing `DESCRIPTION` and adding a `NEWS.md`
-heading. Order NEWS entries alphabetically by function name.
+it. Order NEWS entries alphabetically by function name.
+
+To release a version:
+
+1. Set `Version:` in `DESCRIPTION` and add a `NEWS.md` heading for it.
+2. Run the `release` workflow by hand from the Actions tab. This rehearsal
+   builds, checks and test-installs everything, and publishes nothing.
+3. Tag that commit `vX.Y.Z`, matching `DESCRIPTION`, and push the tag. The
+   workflow publishes the release files once every job has passed.
 
 ## Prose
 
