@@ -79,6 +79,23 @@ scale_fill_islh <- function(
 #'
 #' @return A ggplot2 discrete scale.
 #'
+#' @examples
+#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' trend <- data.frame(
+#'   week = rep(1:4, times = 3),
+#'   age = factor(
+#'     rep(c("0-19", "20-64", "65+"), each = 4),
+#'     levels = c("0-19", "20-64", "65+")
+#'   ),
+#'   cases = c(2, 4, 7, 5, 6, 9, 14, 11, 3, 8, 12, 10)
+#' )
+#'
+#' # The groups have an order, so the colours run from light to dark.
+#' ggplot2::ggplot(trend, ggplot2::aes(week, cases, colour = age)) +
+#'   ggplot2::geom_line(linewidth = 1) +
+#'   scale_colour_islh_ordinal() +
+#'   theme_islh()
+#'
 #' @export
 scale_colour_islh_ordinal <- function(
   family = "blue",
@@ -145,6 +162,27 @@ scale_fill_islh_ordinal <- function(
 #' @param na.value Colour for missing values.
 #'
 #' @return A ggplot2 discrete scale.
+#'
+#' @examples
+#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' coverage <- data.frame(
+#'   week = rep(1:4, times = 2),
+#'   site = rep(c("North", "South"), each = 4),
+#'   percent = c(88, 90, 93, 95, 74, 70, 66, 61),
+#'   status = rep(c("success", "danger"), each = 4)
+#' )
+#'
+#' # Name the values so each status keeps its colour whatever the data holds.
+#' ggplot2::ggplot(
+#'   coverage,
+#'   ggplot2::aes(week, percent, colour = status, group = site)
+#' ) +
+#'   ggplot2::geom_line(linewidth = 1) +
+#'   scale_colour_islh_signal(
+#'     breaks = c("success", "danger"),
+#'     labels = c("On target", "Below target")
+#'   ) +
+#'   theme_islh()
 #'
 #' @export
 scale_colour_islh_signal <- function(..., na.value = .islh_unknown()) {

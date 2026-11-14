@@ -18,3 +18,8 @@ device can use its default font.
 \description{
 Resolve the Island Health font family
 }
+\examples{
+# "BC Sans" where it is installed, otherwise the fallback font or "".
+islh_font_family(warn = FALSE)
+
+}

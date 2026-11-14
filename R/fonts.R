@@ -8,6 +8,10 @@
 #' @return The first installed brand font, or an empty string so the graphics
 #'   device can use its default font.
 #'
+#' @examples
+#' # "BC Sans" where it is installed, otherwise the fallback font or "".
+#' islh_font_family(warn = FALSE)
+#'
 #' @export
 islh_font_family <- function(refresh = FALSE, warn = TRUE) {
   cached <- exists("font", envir = .islh_state, inherits = FALSE)

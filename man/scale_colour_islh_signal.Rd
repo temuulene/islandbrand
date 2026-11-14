@@ -20,3 +20,25 @@ A ggplot2 discrete scale.
 \description{
 Island Health signal colour scale
 }
+\examples{
+\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+coverage <- data.frame(
+  week = rep(1:4, times = 2),
+  site = rep(c("North", "South"), each = 4),
+  percent = c(88, 90, 93, 95, 74, 70, 66, 61),
+  status = rep(c("success", "danger"), each = 4)
+)
+
+# Name the values so each status keeps its colour whatever the data holds.
+ggplot2::ggplot(
+  coverage,
+  ggplot2::aes(week, percent, colour = status, group = site)
+) +
+  ggplot2::geom_line(linewidth = 1) +
+  scale_colour_islh_signal(
+    breaks = c("success", "danger"),
+    labels = c("On target", "Below target")
+  ) +
+  theme_islh()
+
+}
