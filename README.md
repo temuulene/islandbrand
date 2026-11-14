@@ -57,7 +57,7 @@ To install a version your team has approved, add its tag from the
 name, such as `"temuulene/islandbrand@vX.Y.Z"`.
 
 Without GitHub access, get the Windows `.zip` for the approved version from
-your team lead or the Releases page. Install the packages `islandbrand` is
+the maintainer or the Releases page. Install the packages `islandbrand` is
 built on first, then the file:
 
 ```r
