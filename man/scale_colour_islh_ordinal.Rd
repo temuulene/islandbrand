@@ -34,3 +34,21 @@ A ggplot2 discrete scale.
 \description{
 Island Health ordinal colour scale
 }
+\examples{
+\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+trend <- data.frame(
+  week = rep(1:4, times = 3),
+  age = factor(
+    rep(c("0-19", "20-64", "65+"), each = 4),
+    levels = c("0-19", "20-64", "65+")
+  ),
+  cases = c(2, 4, 7, 5, 6, 9, 14, 11, 3, 8, 12, 10)
+)
+
+# The groups have an order, so the colours run from light to dark.
+ggplot2::ggplot(trend, ggplot2::aes(week, cases, colour = age)) +
+  ggplot2::geom_line(linewidth = 1) +
+  scale_colour_islh_ordinal() +
+  theme_islh()
+
+}

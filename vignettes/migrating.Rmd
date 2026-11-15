@@ -143,6 +143,6 @@ bring the package up to date; restart R afterwards.
 ## If you cannot install packages
 
 Some machines will not let you. `islh_check("docx")` or `islh_check("html")`
-will tell you what is missing for that format. Your team lead can supply a
+will tell you what is missing for that format. The maintainer can supply a
 built copy of `islandbrand` and the packages it needs, to install from files
 as above.

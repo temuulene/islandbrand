@@ -57,7 +57,7 @@ To install a version your team has approved, add its tag from the
 name, such as `"temuulene/islandbrand@vX.Y.Z"`.
 
 Without GitHub access, get the Windows `.zip` for the approved version from
-your team lead or the Releases page. Install the packages `islandbrand` is
+the maintainer or the Releases page. Install the packages `islandbrand` is
 built on first, then the file:
 
 ```r
@@ -225,3 +225,11 @@ ggplot(map_data, aes(fill = population)) +
 The population resource covers all of BC. The boundary helper defaults to
 Island Health, so population rows from other health authorities are expected
 to be discarded by this join.
+
+## Maintenance
+
+Temuulen Enebish, of the PHASE team, maintains `islandbrand` and makes its
+releases. Report a problem or ask for a change on the
+[issue tracker](https://github.com/temuulene/islandbrand/issues). The
+[contributing guide](https://github.com/temuulene/islandbrand/blob/main/.github/CONTRIBUTING.md)
+describes how a release is made.

@@ -1,8 +1,10 @@
 # Contributing
 
-Guidance for working in this repository.
+Thank you for helping with `islandbrand`. This guide explains how the package
+is put together and what a change needs before it is merged. Open an issue
+first for anything larger than a small fix, so the approach can be agreed.
 
-## What this repo is
+## About the package
 
 `islandbrand` is an internal R package that applies Island Health branding to
 ggplot2 figures, `flextable`/`gt` tables, and Quarto HTML and Word reports.
@@ -114,7 +116,7 @@ Pandoc actually emits exists, swaps in the official ISLH Office theme from
 `data-raw/theme1.xml` (lifted verbatim from the letterhead template), and
 applies style overrides on top.
 
-Gotchas found the hard way, all handled — don't undo them:
+Details the build script already handles, which a change should keep:
 
 - The script needs `pandoc` and Python's `lxml`.
 - Pandoc's reference doc *used* to ship an empty self-closing `<w:sectPr/>`.
@@ -138,11 +140,11 @@ To verify a change, render and look at it rather than trusting the XML:
 ```bash
 pandoc test.md -o out.docx --reference-doc=inst/quarto/_extensions/islh/islh-report/islh-report-reference.docx
 libreoffice --headless --convert-to pdf out.docx
-pdftoppm -png -r 100 out.pdf page      # then read the PNG
+pdftoppm -png -r 100 out.pdf page      # then open the PNG
 ```
 
-BC Sans will not be installed in a sandbox, so rendered text there shows a
-substituted font. That is expected, not a bug in the template.
+On a computer without BC Sans, such as a build server, the rendered text
+shows a substituted font. That is expected, not a fault in the template.
 
 ### `inst/brand/tokens.json`
 
@@ -151,11 +153,21 @@ which is the single source of truth for brand hexes. `inst/brand/_brand.yml`
 and the Word reference doc both derive from it. `test-brand-tokens.R` fails if
 the three drift apart.
 
-## Versioning
+## Maintenance and releases
+
+Temuulen Enebish maintains the package, reviews changes and makes the
+releases.
 
 `DESCRIPTION`'s `Version:` is the only version string; `islh_version()` reads
-it. Bumping a version means editing `DESCRIPTION` and adding a `NEWS.md`
-heading. Order NEWS entries alphabetically by function name.
+it. Order NEWS entries alphabetically by function name.
+
+To release a version:
+
+1. Set `Version:` in `DESCRIPTION` and add a `NEWS.md` heading for it.
+2. Run the `release` workflow by hand from the Actions tab. This rehearsal
+   builds, checks and test-installs everything, and publishes nothing.
+3. Tag that commit `vX.Y.Z`, matching `DESCRIPTION`, and push the tag. The
+   workflow publishes the release files once every job has passed.
 
 ## Prose
 

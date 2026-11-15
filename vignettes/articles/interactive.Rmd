@@ -1,10 +1,5 @@
 ---
 title: "Interactive HTML reports"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Interactive HTML reports}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
@@ -160,7 +155,7 @@ Open that file and render it to HTML. Fonts follow the `islh_setup()` setting:
 installed BC Sans faces are embedded by default, with a warning and fallback
 when unavailable. Use `embed_fonts = FALSE` to omit font embedding when every
 reader already has the font or file size matters. This guide omits embedded
-fonts to keep the package documentation small.
+fonts to keep the page small.
 
 For a single standalone widget:
 

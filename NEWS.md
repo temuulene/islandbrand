@@ -1,4 +1,6 @@
-# islandbrand (development version)
+# islandbrand 0.1.0
+
+First public release. It includes:
 
 * Staff can install directly from GitHub with one `remotes::install_github()`
   command, alone or together with `islandepi`. Dependencies arrive as Windows
@@ -23,11 +25,8 @@
   suppressed counts while keeping numeric sorting.
 * Interactive dependency checks and installation both select HTML at the
   console, while respecting format detection inside a report render.
-
-# islandbrand 0.1.0
-
-First public release. It includes:
-
+* The interactive reporting guide is on the website only. It carries the
+  Plotly library, which made up more than half of the installed package.
 * `islh_setup()`, which applies the Island Health theme to plots and tables
   for HTML or Word output. Setup either completes or changes nothing: if a
   step fails part way, the session is put back as the call found it, and the
@@ -73,4 +72,6 @@ First public release. It includes:
   are still not ready, even with `quiet = TRUE`. The README shows how to
   install the packages `islandbrand` is built on before the package file.
 * Releases publish only after the Windows and Linux builds pass their checks
-  and the Windows binary installs into an empty library.
+  and the Windows binary installs into an empty library, on R 4.4.1 and on
+  the current R. The release workflow can also be run by hand as a rehearsal
+  that publishes nothing.
