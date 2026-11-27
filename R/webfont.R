@@ -6,7 +6,7 @@
     return(.islh_state$webfont_css)
   }
 
-  .islh_require("base64enc", "embedding BC Sans in HTML tables")
+  .islh_require("base64enc", "embedding BC Sans in HTML output")
 
   if (isTRUE(refresh)) {
     systemfonts::reset_font_cache()
@@ -26,7 +26,7 @@
 
   if (anyNA(faces$path)) {
     .islh_warn(c(
-      "BC Sans could not be embedded in the HTML table.",
+      "BC Sans could not be embedded in the HTML output.",
       i = "Missing font {?face/faces}: {.val {faces$name[is.na(faces$path)]}}."
     ))
     .islh_state$webfont_css <- ""
@@ -37,6 +37,9 @@
     seq_len(nrow(faces)),
     function(i) {
       encoded <- base64enc::base64encode(faces$path[[i]])
+      # The installed files can be TrueType, OpenType or web fonts. A browser
+      # drops a face whose declared format does not match its bytes.
+      kind <- .islh_font_kind(faces$path[[i]])
       paste0(
         "@font-face {\n",
         "  font-family: \"BC Sans\";\n",
@@ -46,9 +49,13 @@
         "  font-weight: ",
         faces$weight[[i]],
         ";\n",
-        "  src: url(\"data:font/ttf;base64,",
+        "  src: url(\"data:",
+        kind$mime,
+        ";base64,",
         encoded,
-        "\") format(\"truetype\");\n",
+        "\") format(\"",
+        kind$format,
+        "\");\n",
         "}"
       )
     },
@@ -62,6 +69,17 @@
   )
   .islh_state$webfont_css <- paste(c(license_notice, css), collapse = "\n")
   .islh_state$webfont_css
+}
+
+# The MIME type and CSS format name for a font file, from its extension.
+.islh_font_kind <- function(path) {
+  switch(
+    tolower(tools::file_ext(path)),
+    woff2 = list(mime = "font/woff2", format = "woff2"),
+    woff = list(mime = "font/woff", format = "woff"),
+    otf = list(mime = "font/otf", format = "opentype"),
+    list(mime = "font/ttf", format = "truetype")
+  )
 }
 
 # Adds BC Sans to the document being knitted. knitr's metadata belongs to one

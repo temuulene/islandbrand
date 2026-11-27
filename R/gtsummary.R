@@ -121,6 +121,13 @@ islh_gtsummary_gt <- function(
   embed_fonts = getOption("islh.embed_fonts", TRUE)
 ) {
   .islh_require("gtsummary", "gtsummary conversion")
+  embed_fonts <- .islh_check_flag(embed_fonts, "embed_fonts")
+
+  # With islh_setup() active, the gtsummary theme styles the table inside
+  # as_gt() too, reading the session option. Set it for this call, so
+  # `embed_fonts = FALSE` holds there as well.
+  old <- options(islh.embed_fonts = embed_fonts)
+  on.exit(options(old), add = TRUE)
 
   x |>
     gtsummary::as_gt(...) |>

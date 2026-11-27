@@ -9,9 +9,11 @@
 #'
 #' `groupname_col` gathers rows under a heading row for each value of that
 #' column, shaded like the group headings of [islh_gt()], so a report rendered
-#' to both HTML and Word shows the same grouped table. It applies when `x` is
-#' a data frame. Word tables have no separate row-label column; put the column
-#' that labels each row first.
+#' to both HTML and Word shows the same grouped table. As in [islh_gt()], rows
+#' are gathered in order of each value's first appearance, whether or not
+#' they are sorted, and missing values form a group of their own. It applies
+#' when `x` is a data frame. Word tables have no separate row-label column;
+#' put the column that labels each row first.
 #'
 #' @param x A flextable or data frame.
 #' @param groupname_col Column whose values become group heading rows. Data
@@ -58,6 +60,11 @@ islh_flextable <- function(
   text_width <- .islh_check_dimension(text_width, "text_width")
 
   created_from_data <- !inherits(x, "flextable")
+  if (created_from_data && !is.data.frame(x)) {
+    .islh_abort(
+      "{.arg x} must be a flextable or a data frame, not {.cls {class(x)[1]}}."
+    )
+  }
   group_rows <- integer()
   if (!created_from_data && !is.null(groupname_col)) {
     .islh_abort(c(
@@ -71,8 +78,17 @@ islh_flextable <- function(
     if (is.null(groupname_col)) {
       x <- flextable::flextable(x)
     } else {
+      # as_grouped_data() starts a heading wherever the value changes, so
+      # unsorted rows would get the same heading twice. Gather each group's
+      # rows together, keeping the order of first appearance, as gt does.
+      ids <- .islh_group_ids(x, groupname_col)
+      x <- x[order(ids), , drop = FALSE]
       grouped <- flextable::as_grouped_data(x, groups = groupname_col)
-      group_rows <- which(!is.na(grouped[[groupname_col]]))
+      # One heading row sits before each group's rows. Counting them, rather
+      # than testing for a non-missing value, also finds the heading of a
+      # missing-value group.
+      sizes <- tabulate(ids)
+      group_rows <- cumsum(c(0L, utils::head(sizes, -1L))) + seq_along(sizes)
       x <- flextable::as_flextable(grouped, hide_grouplabel = TRUE)
     }
   }
