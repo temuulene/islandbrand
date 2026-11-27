@@ -51,6 +51,8 @@
   no longer turns BC Sans off for the rest of the session.
 * The help for `with_islh()` says that patchwork layouts are returned as
   they are.
+* The minimum supported R version is now 4.2, matching `ggplot2`'s current
+  dependency chain (`S7` requires R 4.2 or newer).
 
 # islandbrand 0.1.0
 
