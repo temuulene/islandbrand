@@ -301,7 +301,8 @@ islh_areas <- function(level = c("lha", "hsda")) {
 #' @return A ggplot2 discrete scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' # Simulated weekly rates for every local health area.
 #' areas <- islh_areas()
 #' weeks <- seq(as.Date("2026-01-04"), by = "week", length.out = 10)
@@ -331,6 +332,7 @@ islh_areas <- function(level = c("lha", "hsda")) {
 #'   scale_colour_islh_area(guide = "none") +
 #'   ggplot2::labs(x = NULL, y = "Rate per 100,000") +
 #'   theme_islh()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh_area <- function(
@@ -476,7 +478,8 @@ scale_color_islh_area <- scale_colour_islh_area
 #' @seealso [scale_fill_islh_area()] for each LHA's colour.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' if (requireNamespace("sf", quietly = TRUE)) {
 #'   lha <- islh_example_lha()
 #'
@@ -491,10 +494,11 @@ scale_color_islh_area <- scale_colour_islh_area
 #'     coord_islh_map() +
 #'     theme_islh_map()
 #' }
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 islh_area_labels <- function(size = 4) {
-  size <- .islh_check_size(size, "size", maximum = 20)
+  size <- .islh_check_size(size, "size", maximum = 20, unit = "mm", default = 4)
 
   labels <- merge(
     .islh_lha_label_positions,

@@ -65,7 +65,8 @@
 #' @return A ggplot2 theme object.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' ggplot2::ggplot(
 #'   datasets::mtcars,
 #'   ggplot2::aes(wt, mpg)
@@ -77,6 +78,7 @@
 #'     y = "Miles per US gallon"
 #'   ) +
 #'   theme_islh(grid = "both")
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 theme_islh <- function(base_size = 13, grid = c("y", "x", "both", "none")) {
@@ -193,13 +195,15 @@ theme_islh <- function(base_size = 13, grid = c("y", "x", "both", "none")) {
 #' @return A ggplot2 continuous position scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' counts <- islh_example_data()
 #'
 #' ggplot2::ggplot(counts, ggplot2::aes(program, encounters)) +
 #'   ggplot2::geom_col(fill = islh_brand("primary")) +
 #'   scale_y_islh_count() +
 #'   theme_islh()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_y_islh_count <- function(

@@ -14,10 +14,10 @@ applies Island Health branding:
   * Letter page size with the letterhead's margins
 
 Usage:
-    python3 tools/build_reference_docx.py
+    python3 data-raw/build_reference_docx.py
 
 Requires: pandoc on PATH (to supply the base reference doc).
-Output:   templates/islh-report-reference.docx
+Output:   inst/quarto/_extensions/islh/islh-report/islh-report-reference.docx
 """
 
 from __future__ import annotations

@@ -110,7 +110,8 @@ Edit the generator, never the output — hand edits are lost on the next build.
 
 ### `inst/quarto/_extensions/islh/islh-report/islh-report-reference.docx`
 
-Built by `data-raw/build_reference_docx.py` (Python 3 stdlib, needs `pandoc`).
+Built by `data-raw/build_reference_docx.py` (Python 3 with `lxml`, needs
+`pandoc`).
 It starts from `pandoc --print-default-data-file reference.docx` so every style
 Pandoc actually emits exists, swaps in the official ISLH Office theme from
 `data-raw/theme1.xml` (lifted verbatim from the letterhead template), and
@@ -163,7 +164,9 @@ it. Order NEWS entries alphabetically by function name.
 
 To release a version:
 
-1. Set `Version:` in `DESCRIPTION` and add a `NEWS.md` heading for it.
+1. Set `Version:` in `DESCRIPTION`, set the same `version:` in
+   `inst/quarto/_extensions/islh/islh-report/_extension.yml` (a test checks
+   that they match), and add a `NEWS.md` heading for it.
 2. Run the `release` workflow by hand from the Actions tab. This rehearsal
    builds, checks and test-installs everything, and publishes nothing.
 3. Tag that commit `vX.Y.Z`, matching `DESCRIPTION`, and push the tag. The

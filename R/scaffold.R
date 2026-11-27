@@ -140,7 +140,7 @@
         "#| fig-width: 6",
         "#| fig-height: 3.2",
         "",
-        "counts <- islh_example_data()",
+        'counts <- read.csv("data/example-program-counts.csv")',
         "",
         "ggplot2::ggplot(",
         "  counts,",
@@ -184,7 +184,7 @@
   )
 }
 
-.islh_project_readme <- function(name, format) {
+.islh_project_readme <- function(name, format, rproj = TRUE) {
   c(
     paste0("# ", name),
     "",
@@ -192,7 +192,11 @@
     "",
     "## Rendering it",
     "",
-    "1. Open the `.Rproj` file in RStudio.",
+    if (rproj) {
+      "1. Open the `.Rproj` file in RStudio."
+    } else {
+      "1. Open this folder in RStudio."
+    },
     "2. Install what this format needs, once per machine:",
     "",
     "   ```r",
@@ -264,6 +268,25 @@ islh_create_report <- function(
   overwrite = FALSE
 ) {
   format <- match.arg(format)
+  # Each of these is written into YAML or a file name, where a vector or a
+  # missing value would make an invalid project.
+  if (
+    !is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)
+  ) {
+    .islh_abort("{.arg path} must be one folder path.")
+  }
+  if (
+    !is.character(title) || length(title) != 1L || is.na(title) ||
+      !nzchar(trimws(title))
+  ) {
+    .islh_abort("{.arg title} must be one non-empty string.")
+  }
+  if (
+    !is.null(author) &&
+      (!is.character(author) || length(author) != 1L || is.na(author))
+  ) {
+    .islh_abort("{.arg author} must be NULL or one string.")
+  }
   example_data <- .islh_check_flag(example_data, "example_data")
   rproj <- .islh_check_flag(rproj, "rproj")
   overwrite <- .islh_check_flag(overwrite, "overwrite")
@@ -285,7 +308,7 @@ islh_create_report <- function(
     .islh_report_qmd(title, author, format, example_data),
     "report.qmd"
   )
-  write_lines(.islh_project_readme(name, format), "README.md")
+  write_lines(.islh_project_readme(name, format, rproj), "README.md")
   write_lines(.islh_project_gitignore, ".gitignore")
   if (rproj) {
     write_lines(.islh_rproj, paste0(name, ".Rproj"))
@@ -313,8 +336,13 @@ islh_create_report <- function(
       "Replaced {length(replaced)} file{?s} that {?was/were} already there:
        {.file {replaced}}."
     },
-    "i" = "Open {.file {paste0(name, '.Rproj')}}, then run
-           {.code islandbrand::islh_install_deps(\"{install_for}\")} once.",
+    "i" = if (rproj) {
+      "Open {.file {paste0(name, '.Rproj')}}, then run
+       {.code islandbrand::islh_install_deps(\"{install_for}\")} once."
+    } else {
+      "Open the project folder in RStudio, then run
+       {.code islandbrand::islh_install_deps(\"{install_for}\")} once."
+    },
     "i" = "Then open {.file report.qmd} and click Render."
   ))
 

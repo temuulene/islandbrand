@@ -140,7 +140,7 @@ test_that("widget fonts are embedded once per dependency name", {
   widget <- islh_reactable(data.frame(x = 1), embed_fonts = TRUE)
   expect_contains(
     vapply(widget$dependencies, `[[`, "", "name"),
-    "islh-widget-font"
+    "islh-bc-sans"
   )
 
   local_mocked_bindings(.islh_document_has_webfont = function() TRUE)
@@ -148,7 +148,7 @@ test_that("widget fonts are embedded once per dependency name", {
   expect_equal(
     intersect(
       vapply(widget$dependencies, `[[`, "", "name"),
-      "islh-widget-font"
+      "islh-bc-sans"
     ),
     character()
   )
@@ -160,7 +160,7 @@ test_that("widget fonts are embedded once per dependency name", {
   expect_equal(
     intersect(
       vapply(widget$dependencies, `[[`, "", "name"),
-      "islh-widget-font"
+      "islh-bc-sans"
     ),
     character()
   )

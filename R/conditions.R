@@ -46,12 +46,15 @@
 # Builds the install command shown in error messages. Island Health laptops
 # block programs run from a user library, which breaks `pak`, and have no
 # compiler, so a source build fails too. Binary installs through base R's
-# `install.packages()` are the only route that works. Braces are escaped
-# because the result is interpolated into a cli `{.code ...}` span.
-.islh_install_command <- function(packages) {
+# `install.packages()` are the only route that works there. CRAN has no
+# binaries for Linux, so the command there leaves the type to R, as
+# islh_install_deps() does. Braces are escaped because the result is
+# interpolated into a cli `{.code ...}` span.
+.islh_install_command <- function(packages, binary = .islh_binary_platform()) {
   packages <- unique(packages)
   quoted <- paste(sprintf('"%s"', packages), collapse = ", ")
-  command <- paste0('install.packages(c(', quoted, '), type = "binary")')
+  type <- if (isTRUE(binary)) ', type = "binary"' else ""
+  command <- paste0('install.packages(c(', quoted, ')', type, ')')
   gsub("}", "}}", gsub("{", "{{", command, fixed = TRUE), fixed = TRUE)
 }
 
@@ -90,4 +93,9 @@
     )
   }
   invisible(TRUE)
+}
+
+# Whether CRAN publishes binary packages for this platform: Windows and macOS.
+.islh_binary_platform <- function() {
+  .Platform$OS.type == "windows" || Sys.info()[["sysname"]] == "Darwin"
 }

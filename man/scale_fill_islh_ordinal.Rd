@@ -27,7 +27,8 @@ A ggplot2 discrete scale.
 Island Health ordinal fill scale
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 severity <- data.frame(
   level = factor(
     c("Mild", "Moderate", "Severe"),
@@ -41,5 +42,6 @@ ggplot2::ggplot(severity, ggplot2::aes(level, cases, fill = level)) +
   scale_fill_islh_ordinal() +
   scale_y_islh_count() +
   theme_islh()
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }

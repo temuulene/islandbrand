@@ -30,12 +30,14 @@ labels round to whole numbers, so a break at 2.5 would print as "2" beside
 the wrong gridline.
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 counts <- islh_example_data()
 
 ggplot2::ggplot(counts, ggplot2::aes(program, encounters)) +
   ggplot2::geom_col(fill = islh_brand("primary")) +
   scale_y_islh_count() +
   theme_islh()
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }

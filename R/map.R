@@ -43,10 +43,14 @@ coord_islh_map <- function(crs = 3005, datum = NA, expand = FALSE, ...) {
 #' geography covers First Nations communities.
 #'
 #' ggplot2 does not wrap a caption, so a full one runs off the side of a
-#' figure. The text is wrapped at `width` characters instead; 100 suits the
-#' 6.5-inch report preset in [islh_save_plot()].
+#' figure. The text is wrapped at `width` characters instead. About 100
+#' characters fit across the 6.5-inch report preset in [islh_save_plot()];
+#' the default of 80 leaves a margin.
 #'
-#' @param source Data source, for example `"BC Data Catalogue"`.
+#' Each part ends with one full stop, whether or not it was given one.
+#'
+#' @param source Data source, for example `"BC Data Catalogue"`. One
+#'   non-empty string; the other text arguments, when given, are too.
 #' @param extracted Extraction date, as a string or a `Date`.
 #' @param boundary Geography and boundary vintage, for example
 #'   `"Local health areas, 2024 boundaries"`.
@@ -78,15 +82,39 @@ islh_caption <- function(
   governance = NULL,
   width = 80
 ) {
-  if (!.islh_is_string(source) || !.islh_is_string(extracted)) {
-    .islh_abort("{.arg source} and {.arg extracted} must each be one string.")
+  if (
+    !.islh_is_string(source) ||
+      !(.islh_is_string(extracted) || .islh_is_date(extracted))
+  ) {
+    .islh_abort(c(
+      "{.arg source} and {.arg extracted} must each be one string, not empty.",
+      i = "{.arg extracted} can also be one {.cls Date}."
+    ))
+  }
+  optional <- list(
+    boundary = boundary,
+    standard_pop = standard_pop,
+    suppression = suppression,
+    governance = governance
+  )
+  for (arg in names(optional)) {
+    if (!is.null(optional[[arg]]) && !.islh_is_string(optional[[arg]])) {
+      .islh_abort("{.arg {arg}} must be NULL or one non-empty string.")
+    }
+  }
+  if (
+    !is.numeric(width) || length(width) != 1L || is.na(width) || width < 1
+  ) {
+    .islh_abort("{.arg width} must be one positive number, or {.code Inf}.")
   }
 
   parts <- c(
-    paste0("Source: ", source, "."),
-    paste0("Extracted ", format(extracted), "."),
-    if (!is.null(boundary)) paste0(boundary, "."),
-    if (!is.null(standard_pop)) paste0("Standardized to ", standard_pop, "."),
+    .islh_sentence(paste0("Source: ", source)),
+    .islh_sentence(paste0("Extracted ", format(extracted))),
+    if (!is.null(boundary)) .islh_sentence(boundary),
+    if (!is.null(standard_pop)) {
+      .islh_sentence(paste0("Standardized to ", standard_pop))
+    },
     if (!is.null(suppression)) .islh_sentence(suppression),
     if (!is.null(governance)) .islh_sentence(governance)
   )
@@ -94,7 +122,7 @@ islh_caption <- function(
   paste(strwrap(paste(parts, collapse = " "), width = width), collapse = "\n")
 }
 
-#' Is this one non-missing string?
+#' Is this one non-empty string?
 #'
 #' @param x Value to test.
 #'
@@ -102,7 +130,11 @@ islh_caption <- function(
 #'
 #' @noRd
 .islh_is_string <- function(x) {
-  (is.character(x) || inherits(x, "Date")) && length(x) == 1L && !is.na(x)
+  is.character(x) && length(x) == 1L && !is.na(x) && nzchar(trimws(x))
+}
+
+.islh_is_date <- function(x) {
+  inherits(x, "Date") && length(x) == 1L && !is.na(x)
 }
 
 #' Close a caption fragment with a full stop unless it has one

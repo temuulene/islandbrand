@@ -9,7 +9,8 @@
 #' @return A ggplot2 discrete scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' ggplot2::ggplot(
 #'   datasets::mtcars,
 #'   ggplot2::aes(wt, mpg, colour = factor(cyl))
@@ -18,6 +19,7 @@
 #'   scale_colour_islh() +
 #'   ggplot2::labs(colour = "Cylinders") +
 #'   theme_islh()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_colour_islh <- function(
@@ -45,7 +47,8 @@ scale_color_islh <- scale_colour_islh
 #' @return A ggplot2 discrete scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' counts <- data.frame(
 #'   program = c("Community", "Hospital", "Primary care"),
 #'   encounters = c(1860, 3210, 2440)
@@ -55,6 +58,7 @@ scale_color_islh <- scale_colour_islh
 #'   ggplot2::geom_col(show.legend = FALSE) +
 #'   scale_fill_islh() +
 #'   theme_islh()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh <- function(
@@ -80,7 +84,8 @@ scale_fill_islh <- function(
 #' @return A ggplot2 discrete scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' trend <- data.frame(
 #'   week = rep(1:4, times = 3),
 #'   age = factor(
@@ -95,6 +100,7 @@ scale_fill_islh <- function(
 #'   ggplot2::geom_line(linewidth = 1) +
 #'   scale_colour_islh_ordinal() +
 #'   theme_islh()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_colour_islh_ordinal <- function(
@@ -124,7 +130,8 @@ scale_color_islh_ordinal <- scale_colour_islh_ordinal
 #' @return A ggplot2 discrete scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' severity <- data.frame(
 #'   level = factor(
 #'     c("Mild", "Moderate", "Severe"),
@@ -138,6 +145,7 @@ scale_color_islh_ordinal <- scale_colour_islh_ordinal
 #'   scale_fill_islh_ordinal() +
 #'   scale_y_islh_count() +
 #'   theme_islh()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh_ordinal <- function(
@@ -164,7 +172,8 @@ scale_fill_islh_ordinal <- function(
 #' @return A ggplot2 discrete scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' coverage <- data.frame(
 #'   week = rep(1:4, times = 2),
 #'   site = rep(c("North", "South"), each = 4),
@@ -183,6 +192,7 @@ scale_fill_islh_ordinal <- function(
 #'     labels = c("On target", "Below target")
 #'   ) +
 #'   theme_islh()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_colour_islh_signal <- function(..., na.value = .islh_unknown()) {
@@ -205,7 +215,8 @@ scale_color_islh_signal <- scale_colour_islh_signal
 #' @return A ggplot2 discrete scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' status <- data.frame(
 #'   site = c("North", "Central", "South"),
 #'   percent = c(92, 78, 61),
@@ -220,6 +231,7 @@ scale_color_islh_signal <- scale_colour_islh_signal
 #'     labels = c("On target", "Watch", "Below target")
 #'   ) +
 #'   theme_islh()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh_signal <- function(..., na.value = .islh_unknown()) {
@@ -237,7 +249,8 @@ scale_fill_islh_signal <- function(..., na.value = .islh_unknown()) {
 #' The stock `coloursteps` guide takes its bar length from `legend.key.width`,
 #' which [theme_islh()] sizes for qualitative keys. That leaves a bar too short
 #' to hold its own break labels, so they overprint each other. This guide gives
-#' the bar a fixed 10-line length, puts the title above it, and drops the tick
+#' the bar a fixed length of `key_width` lines, 14 by default, puts the title
+#' above it, and drops the tick
 #' marks between bins.
 #'
 #' @param key_width Bar length in lines of text.
@@ -300,7 +313,8 @@ scale_fill_islh_signal <- function(..., na.value = .islh_unknown()) {
 #' @return A ggplot2 binned fill scale.
 #'
 #' @examples
-#' \dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' grid <- expand.grid(x = 1:5, y = 1:4)
 #' grid$value <- seq_len(nrow(grid)) * 100
 #'
@@ -309,6 +323,7 @@ scale_fill_islh_signal <- function(..., na.value = .islh_unknown()) {
 #'   scale_fill_islh_b(n.breaks = 5) +
 #'   ggplot2::coord_equal() +
 #'   theme_islh_map()
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh_b <- function(

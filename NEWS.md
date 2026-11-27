@@ -1,3 +1,59 @@
+# islandbrand (development version)
+
+## Figures
+
+* `islh_epi_curve()` refuses `labels = "total"` with dodged `fill` groups,
+  where a period total floated above bars that each show one group. It
+  names a missing `date` or `count`, and stops when a reference column the
+  caller named, such as `reference_mean = "mean_typo"`, is not in
+  `reference`. Default reference column names may still be absent.
+* `islh_area_labels()` describes `size` in millimetres, the unit it uses.
+* `islh_caption()` ends every part with one full stop, so a source ending in
+  a full stop no longer gives `".."`. It refuses an empty or non-text
+  `source`, vector values for the optional parts, and a `width` below 1.
+* Palette sizes and counts are checked as whole numbers within R's integer
+  range, so `Inf`, text and very large values stop with a clear message.
+
+## Tables and fonts
+
+* `islh_flextable(groupname_col = )` gathers unsorted rows under one heading
+  per value, in order of first appearance, as `islh_gt()` does, and shades
+  the heading of a missing-value group.
+* `islh_gt()` adds BC Sans to any CSS the table already carries, once,
+  rather than replacing it. `islh_gt()` and `islh_flextable()` refuse input
+  that is neither a table nor a data frame.
+* `islh_gtsummary_gt(embed_fonts = FALSE)` no longer embeds the font when
+  `islh_setup()` is active.
+* Embedded fonts declare the format of the installed file, so WOFF2, WOFF
+  and OpenType copies of BC Sans load in the browser.
+* Widgets and documents share one font dependency name, so a page holding
+  both carries the font once.
+
+## Projects and setup
+
+* `islh_use_quarto()` and `islh_use_brand()` return paths relative to the
+  project on Windows too, check `dir`, `logos` and `overwrite`, and show
+  folder names with braces as written.
+* `islh_create_report()` checks `path`, `title` and `author`, only tells you
+  to open an `.Rproj` file when it writes one, and the example report reads
+  the CSV it copies into `data/`.
+* `islh_check_project()` stops with a message when a folder sits where a
+  project file belongs, and a failed manifest write is reported.
+* `islh_install_deps("both")` reports missing packages for both formats.
+* The install command in messages asks for binaries only on Windows and
+  macOS, where CRAN publishes them, as `islh_install_deps()` already did.
+* `islh_setup()` and `with_islh()` no longer load flextable and gtsummary
+  just to record their settings. `islh_reset()` and `with_islh()` restore
+  flextable and gtsummary only when setup configured them, so settings made
+  after a plot-only setup survive, and pass flextable only settings it
+  accepts.
+* Help-page examples restore the font setting they change, so running one
+  no longer turns BC Sans off for the rest of the session.
+* The help for `with_islh()` says that patchwork layouts are returned as
+  they are.
+* The minimum supported R version is now 4.2, matching `ggplot2`'s current
+  dependency chain (`S7` requires R 4.2 or newer).
+
 # islandbrand 0.1.0
 
 First public release. It includes:

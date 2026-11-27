@@ -15,7 +15,8 @@ islh_caption(
 )
 }
 \arguments{
-\item{source}{Data source, for example \code{"BC Data Catalogue"}.}
+\item{source}{Data source, for example \code{"BC Data Catalogue"}. One
+non-empty string; the other text arguments, when given, are too.}
 
 \item{extracted}{Extraction date, as a string or a \code{Date}.}
 
@@ -48,8 +49,11 @@ Any argument left \code{NULL} is skipped, so a count map can omit
 geography covers First Nations communities.
 
 ggplot2 does not wrap a caption, so a full one runs off the side of a
-figure. The text is wrapped at \code{width} characters instead; 100 suits the
-6.5-inch report preset in \code{\link[=islh_save_plot]{islh_save_plot()}}.
+figure. The text is wrapped at \code{width} characters instead. About 100
+characters fit across the 6.5-inch report preset in \code{\link[=islh_save_plot]{islh_save_plot()}};
+the default of 80 leaves a margin.
+
+Each part ends with one full stop, whether or not it was given one.
 }
 \examples{
 islh_caption(

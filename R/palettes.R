@@ -1,7 +1,5 @@
 .islh_pal_qualitative <- function(n, reverse = FALSE) {
-  if (length(n) != 1L || is.na(n) || n < 1 || n != as.integer(n)) {
-    .islh_abort("{.arg n} must be one positive whole number.", call = NULL)
-  }
+  n <- .islh_check_count(n, "n", call = NULL)
 
   values <- c(
     islh_hex("blue", 50),
@@ -33,9 +31,7 @@
 # Ordinal scales stay within one colour family because lightness carries the
 # order. Values are kept at 70 or darker for graphic contrast on white.
 .islh_pal_ordinal <- function(n, family = "blue", reverse = FALSE) {
-  if (length(n) != 1L || is.na(n) || n < 1 || n != as.integer(n)) {
-    .islh_abort("{.arg n} must be one positive whole number.", call = NULL)
-  }
+  n <- .islh_check_count(n, "n", call = NULL)
 
   values <- switch(
     as.character(n),

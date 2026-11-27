@@ -95,26 +95,32 @@
   as.numeric(x)
 }
 
-# A base font size in points.
+# A font size, in points by default. ggplot2 text layers take millimetres,
+# so a caller checking one passes `unit = "mm"` and its own default.
 .islh_check_size <- function(
   x,
   arg = "base_size",
   maximum = 100,
+  unit = c("pt", "mm"),
+  default = 12,
   call = rlang::caller_env()
 ) {
+  unit <- match.arg(unit)
+  unit_name <- if (unit == "pt") "points" else "millimetres"
   if (
     !is.numeric(x) || length(x) != 1L || is.na(x) || !is.finite(x) || x <= 0
   ) {
     .islh_abort(
-      "{.arg {arg}} must be one positive, finite font size in points.",
+      "{.arg {arg}} must be one positive, finite font size in {unit_name}.",
       call = call
     )
   }
   if (x > maximum) {
     .islh_abort(
       c(
-        "{.arg {arg}} is {x} points, which no figure can show.",
-        i = "Font sizes are given in points; 12 is the Island Health default."
+        "{.arg {arg}} is {x} {unit_name}, which no figure can show.",
+        i = "This size is given in {unit_name}; {default} is the Island Health
+             default."
       ),
       call = call
     )
@@ -130,7 +136,8 @@
       is.na(x) ||
       !is.finite(x) ||
       x != round(x) ||
-      x < 1
+      x < 1 ||
+      x > .Machine$integer.max
   ) {
     .islh_abort("{.arg {arg}} must be one positive whole number.", call = call)
   }

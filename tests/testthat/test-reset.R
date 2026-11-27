@@ -1,11 +1,5 @@
 # islh_setup() changes the session, so every test here has to put it back
 # itself or it corrupts the ones that follow.
-local_clean_session <- function(env = parent.frame()) {
-  state <- .islh_capture_state()
-  withr::defer(.islh_restore_state(state), envir = env)
-  invisible(state)
-}
-
 test_that("setup records a way back and reset takes it", {
   local_clean_session()
 

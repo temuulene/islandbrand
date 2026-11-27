@@ -43,9 +43,11 @@ LibreOffice, and differently again on a machine without BC Sans installed.
 
 \code{groupname_col} gathers rows under a heading row for each value of that
 column, shaded like the group headings of \code{\link[=islh_gt]{islh_gt()}}, so a report rendered
-to both HTML and Word shows the same grouped table. It applies when \code{x} is
-a data frame. Word tables have no separate row-label column; put the column
-that labels each row first.
+to both HTML and Word shows the same grouped table. As in \code{\link[=islh_gt]{islh_gt()}}, rows
+are gathered in order of each value's first appearance, whether or not
+they are sorted, and missing values form a group of their own. It applies
+when \code{x} is a data frame. Word tables have no separate row-label column;
+put the column that labels each row first.
 }
 
 \examples{

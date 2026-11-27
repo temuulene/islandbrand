@@ -76,6 +76,12 @@ islh_gt <- function(
       ))
     }
   } else {
+    if (!is.data.frame(data)) {
+      .islh_abort(
+        "{.arg data} must be a gt table or a data frame, not
+         {.cls {class(data)[1]}}."
+      )
+    }
     groupname_col <- .islh_check_column(groupname_col, data, "groupname_col")
     rowname_col <- .islh_check_column(rowname_col, data, "rowname_col")
     data <- gt::gt(
@@ -178,12 +184,24 @@ islh_gt <- function(
   embed_in_table <- isTRUE(embed_fonts) && !.islh_document_has_webfont()
   if (embed_in_table) {
     webfont_css <- .islh_bc_sans_webfont_css()
-    if (nzchar(webfont_css)) {
-      data <- gt::opt_css(data, css = webfont_css, add = FALSE)
+    # Add to any CSS the caller set, once: a table styled twice, as gtsummary
+    # tables can be, must not carry the font twice.
+    existing <- .islh_gt_css(data)
+    if (nzchar(webfont_css) && !webfont_css %in% existing) {
+      data <- gt::opt_css(data, css = webfont_css, add = TRUE)
     }
   }
 
   data
+}
+
+# The extra CSS already attached to a gt table.
+.islh_gt_css <- function(data) {
+  options <- tryCatch(data[["_options"]], error = function(condition) NULL)
+  if (!is.data.frame(options)) {
+    return(character())
+  }
+  unlist(options$value[options$parameter == "table_additional_css"])
 }
 
 # Whether a gt table has a non-empty title, set here or by the caller.

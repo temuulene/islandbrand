@@ -37,11 +37,15 @@ The filename, invisibly.
 Save an Island Health plot with a standard size
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 if (requireNamespace("ragg", quietly = TRUE)) {
   path <- tempfile(fileext = ".png")
   islh_save_plot(path, islh_example_plot(), preset = "half_width")
-  file.exists(path)
+  saved <- file.exists(path)
+  unlink(path)
+  saved
 }
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }

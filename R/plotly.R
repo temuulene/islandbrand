@@ -63,6 +63,7 @@ islh_plotly <- function(
 ) {
   .islh_check_widget_output()
   .islh_require("plotly", "interactive Island Health plots")
+  .islh_require("htmltools", "interactive Island Health plots")
   if (!inherits(plot, "ggplot")) {
     .islh_abort(
       paste0(

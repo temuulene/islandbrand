@@ -89,16 +89,26 @@
   if (length(paths) == 0L) {
     return(character())
   }
-  prefix <- paste0(normalizePath(dir, mustWork = FALSE), .Platform$file.sep)
-  sub(prefix, "", normalizePath(paths, mustWork = FALSE), fixed = TRUE)
+  # Forward slashes on both sides. On Windows normalizePath() writes
+  # backslashes, which never match a prefix ending in "/", so every path came
+  # back absolute.
+  prefix <- paste0(normalizePath(dir, winslash = "/", mustWork = FALSE), "/")
+  sub(
+    prefix,
+    "",
+    normalizePath(paths, winslash = "/", mustWork = FALSE),
+    fixed = TRUE
+  )
 }
 
 .islh_report_copy <- function(result, what, overwrite) {
   if (length(result$written) > 0L) {
     .islh_inform(c("v" = paste0("Wrote ", what, ":")))
+    # Each path goes in as a cli value, so braces in a folder name are shown.
+    written <- result$written
     .islh_inform(stats::setNames(
-      paste0("{.file ", result$written, "}"),
-      rep("*", length(result$written))
+      sprintf("{.file {written[[%d]]}}", seq_along(written)),
+      rep("*", length(written))
     ))
   }
   skipped <- length(result$skipped)
@@ -138,6 +148,7 @@
 #' islh_use_quarto(project)
 islh_use_quarto <- function(dir = ".", overwrite = FALSE) {
   .islh_check_dir(dir)
+  overwrite <- .islh_check_flag(overwrite, "overwrite")
   source <- .islh_path("quarto", "_extensions")
   result <- .islh_copy_into(
     source,
@@ -171,6 +182,8 @@ islh_use_quarto <- function(dir = ".", overwrite = FALSE) {
 #' islh_use_brand(project)
 islh_use_brand <- function(dir = ".", logos = TRUE, overwrite = FALSE) {
   .islh_check_dir(dir)
+  logos <- .islh_check_flag(logos, "logos")
+  overwrite <- .islh_check_flag(overwrite, "overwrite")
   written <- character()
   skipped <- character()
 
@@ -233,6 +246,11 @@ islh_use_brand <- function(dir = ".", logos = TRUE, overwrite = FALSE) {
 }
 
 .islh_check_dir <- function(dir, call = rlang::caller_env()) {
+  if (
+    !is.character(dir) || length(dir) != 1L || is.na(dir) || !nzchar(dir)
+  ) {
+    .islh_abort("{.arg dir} must be one folder path.", call = call)
+  }
   if (!dir.exists(dir)) {
     .islh_abort(
       c(

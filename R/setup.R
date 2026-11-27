@@ -208,8 +208,20 @@ islh_setup <- function(
     )
   }
 
-  if (is.null(.islh_slot("setup"))) {
-    .islh_state$setup <- restore_point
+  # Reset restores a table engine only when a setup configured it, so later
+  # flextable or gtsummary settings the user made themselves survive.
+  configured <- .islh_configured_engines(table_config)
+  existing <- .islh_slot("setup")
+  if (is.null(existing)) {
+    .islh_state$setup <- .islh_keep_engines(restore_point, configured)
+  } else if (!is.null(existing$value)) {
+    # A later setup that configures an engine the first one left alone adds
+    # that engine's state from before this call.
+    for (engine in configured) {
+      if (is.null(existing$value[[engine]])) {
+        .islh_state$setup[[engine]] <- restore_point[[engine]]
+      }
+    }
   }
   committed <- TRUE
 
@@ -244,4 +256,22 @@ islh_setup <- function(
   }
 
   invisible(result)
+}
+
+# The table engines a setup call changed: flextable for Word tables, and
+# gtsummary whenever its theme was set.
+.islh_configured_engines <- function(table_config) {
+  c(
+    if (!is.null(table_config$flextable)) "flextable",
+    if (!is.null(table_config$gtsummary)) "gtsummary"
+  )
+}
+
+# Drops the record of any table engine not in `engines`, so restoring the
+# record leaves that engine as it is.
+.islh_keep_engines <- function(state, engines) {
+  for (engine in setdiff(c("flextable", "gtsummary"), engines)) {
+    state[engine] <- list(NULL)
+  }
+  state
 }

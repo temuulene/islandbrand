@@ -117,8 +117,10 @@
       writeLines(css, file.path(directory, "bc-sans.css"), useBytes = TRUE)
       widget$dependencies <- c(
         widget$dependencies,
+        # The same name as the document's font dependency, so a page holding
+        # both carries the font once.
         list(htmltools::htmlDependency(
-          name = "islh-widget-font",
+          name = "islh-bc-sans",
           version = as.character(islh_version()),
           src = c(file = directory),
           stylesheet = "bc-sans.css",

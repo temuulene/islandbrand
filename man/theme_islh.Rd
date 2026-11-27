@@ -18,7 +18,8 @@ A ggplot2 theme object.
 Island Health ggplot theme
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 ggplot2::ggplot(
   datasets::mtcars,
   ggplot2::aes(wt, mpg)
@@ -30,5 +31,6 @@ ggplot2::ggplot(
     y = "Miles per US gallon"
   ) +
   theme_islh(grid = "both")
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }

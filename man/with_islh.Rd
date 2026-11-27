@@ -39,7 +39,9 @@ discrete colour and fill scales, and geom colours before the session is
 restored, so it looks the same when printed afterwards. Anything the plot
 sets itself, such as its own scale or a \code{theme()} addition, still wins.
 Plots inside a plain list are handled too. Other objects are returned as
-they are.
+they are, and so are patchwork layouts: a patchwork returned from the block
+is drawn with whatever the session has when it is printed. Draw or save a
+patchwork inside the block.
 }
 
 \examples{

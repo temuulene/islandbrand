@@ -1,7 +1,7 @@
 # Checks the oldest versions DESCRIPTION promises, so the declared range is
 # tested rather than assumed. Each run tests one floor:
 #
-# * hard: the oldest R (4.1) with ggplot2 at its declared minimum and only the
+# * hard: the oldest R (4.2) with ggplot2 at its declared minimum and only the
 #   hard dependencies. Optional packages are not installed; their tests skip.
 # * optional: the approved staff R (4.4.1) with every package, and flextable
 #   and gtsummary at their declared minimums.
@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {os: ubuntu-22.04, r: '4.1', deps: hard}
+          - {os: ubuntu-22.04, r: '4.2', deps: hard}
           - {os: ubuntu-latest, r: '4.4.1', deps: optional}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -38,9 +38,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           dependencies: ${{ matrix.config.deps == 'hard' && '"hard"' || '"all"' }}
-          # Deciding whether pandoc is needed resolves every Suggested
-          # package, and gtsummary needs R 4.2, so on R 4.1 the step fails
-          # before anything is installed. The hard floor needs no pandoc.
+          # The hard floor only checks core Imports and needs no pandoc.
           install-pandoc: ${{ matrix.config.deps == 'hard' && 'false' || 'auto' }}
           extra-packages: |
             any::remotes

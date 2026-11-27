@@ -59,7 +59,8 @@ the end of each line; the brand standard requires a cue besides colour when
 colour carries meaning.
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 # Simulated weekly rates for every local health area.
 areas <- islh_areas()
 weeks <- seq(as.Date("2026-01-04"), by = "week", length.out = 10)
@@ -89,5 +90,6 @@ ggplot2::ggplot(rates, ggplot2::aes(week, rate, colour = name)) +
   scale_colour_islh_area(guide = "none") +
   ggplot2::labs(x = NULL, y = "Rate per 100,000") +
   theme_islh()
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }

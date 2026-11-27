@@ -53,7 +53,8 @@ thing again: draw them as their own layer with their own legend key rather
 than letting them share the missing-data colour.
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 grid <- expand.grid(x = 1:5, y = 1:4)
 grid$value <- seq_len(nrow(grid)) * 100
 
@@ -62,5 +63,6 @@ ggplot2::ggplot(grid, ggplot2::aes(x, y, fill = value)) +
   scale_fill_islh_b(n.breaks = 5) +
   ggplot2::coord_equal() +
   theme_islh_map()
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }
