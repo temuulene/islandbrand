@@ -42,6 +42,6 @@ ggplot2::ggplot(severity, ggplot2::aes(level, cases, fill = level)) +
   scale_fill_islh_ordinal() +
   scale_y_islh_count() +
   theme_islh()
-\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }

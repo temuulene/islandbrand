@@ -63,6 +63,6 @@ ggplot2::ggplot(grid, ggplot2::aes(x, y, fill = value)) +
   scale_fill_islh_b(n.breaks = 5) +
   ggplot2::coord_equal() +
   theme_islh_map()
-\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }

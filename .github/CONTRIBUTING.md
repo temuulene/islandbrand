@@ -110,7 +110,8 @@ Edit the generator, never the output — hand edits are lost on the next build.
 
 ### `inst/quarto/_extensions/islh/islh-report/islh-report-reference.docx`
 
-Built by `data-raw/build_reference_docx.py` (Python 3 stdlib, needs `pandoc`).
+Built by `data-raw/build_reference_docx.py` (Python 3 with `lxml`, needs
+`pandoc`).
 It starts from `pandoc --print-default-data-file reference.docx` so every style
 Pandoc actually emits exists, swaps in the official ISLH Office theme from
 `data-raw/theme1.xml` (lifted verbatim from the letterhead template), and
@@ -118,7 +119,7 @@ applies style overrides on top.
 
 Details the build script already handles, which a change should keep:
 
-- The script needs `pandoc` and the Python 3 standard library only.
+- The script needs `pandoc` and Python's `lxml`.
 - Pandoc's reference doc *used* to ship an empty self-closing `<w:sectPr/>`.
   Since pandoc 3.8 it ships a populated one carrying footnote settings. The
   script handles both, and carries `w:footnotePr`/`w:endnotePr` across rather

@@ -19,7 +19,7 @@
 #'   scale_colour_islh() +
 #'   ggplot2::labs(colour = "Cylinders") +
 #'   theme_islh()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_colour_islh <- function(
@@ -58,7 +58,7 @@ scale_color_islh <- scale_colour_islh
 #'   ggplot2::geom_col(show.legend = FALSE) +
 #'   scale_fill_islh() +
 #'   theme_islh()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh <- function(
@@ -100,7 +100,7 @@ scale_fill_islh <- function(
 #'   ggplot2::geom_line(linewidth = 1) +
 #'   scale_colour_islh_ordinal() +
 #'   theme_islh()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_colour_islh_ordinal <- function(
@@ -145,7 +145,7 @@ scale_color_islh_ordinal <- scale_colour_islh_ordinal
 #'   scale_fill_islh_ordinal() +
 #'   scale_y_islh_count() +
 #'   theme_islh()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh_ordinal <- function(
@@ -192,7 +192,7 @@ scale_fill_islh_ordinal <- function(
 #'     labels = c("On target", "Below target")
 #'   ) +
 #'   theme_islh()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_colour_islh_signal <- function(..., na.value = .islh_unknown()) {
@@ -231,7 +231,7 @@ scale_color_islh_signal <- scale_colour_islh_signal
 #'     labels = c("On target", "Watch", "Below target")
 #'   ) +
 #'   theme_islh()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh_signal <- function(..., na.value = .islh_unknown()) {
@@ -323,7 +323,7 @@ scale_fill_islh_signal <- function(..., na.value = .islh_unknown()) {
 #'   scale_fill_islh_b(n.breaks = 5) +
 #'   ggplot2::coord_equal() +
 #'   theme_islh_map()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh_b <- function(

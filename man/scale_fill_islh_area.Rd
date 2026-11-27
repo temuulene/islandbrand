@@ -90,6 +90,6 @@ ggplot2::ggplot(rates, ggplot2::aes(week, rate, colour = name)) +
   scale_colour_islh_area(guide = "none") +
   ggplot2::labs(x = NULL, y = "Rate per 100,000") +
   theme_islh()
-\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }

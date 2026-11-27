@@ -295,7 +295,13 @@ with_islh <- function(code, ..., quiet = TRUE) {
   state <- .islh_capture_state()
   on.exit(.islh_restore_state(state), add = TRUE)
 
-  islh_setup(..., quiet = quiet)
+  setup <- islh_setup(..., quiet = quiet)
+  # As with islh_reset(): leave alone a table engine this setup did not
+  # configure, including settings the block itself makes.
+  state <- .islh_keep_engines(
+    state,
+    .islh_configured_engines(setup$table)
+  )
   result <- withVisible(code)
 
   # `on.exit()` restores the session after this line, so the plot has to take

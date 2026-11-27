@@ -100,7 +100,7 @@
 #'   fill = source,
 #'   title = "Reported cases by week"
 #' )
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 islh_epi_curve <- function(
@@ -694,8 +694,8 @@ islh_epi_curve <- function(
   if (length(absent) > 0L) {
     columns <- unlist(chosen[absent])
     .islh_abort(
-      "{.arg reference} has no column {.field {columns}}, named by
-       {.arg {absent}}.",
+      "{.arg reference} has no {cli::qty(length(columns))}column{?s}
+       {.field {columns}}, named by {.arg {absent}}.",
       call = call
     )
   }

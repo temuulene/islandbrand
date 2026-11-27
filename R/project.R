@@ -160,25 +160,36 @@
   carried[.islh_manifest_columns]
 }
 
-.islh_write_manifest <- function(dir, entries) {
+.islh_write_manifest <- function(dir, entries, call = rlang::caller_env()) {
   entries <- entries[order(entries$path), .islh_manifest_columns, drop = FALSE]
   rownames(entries) <- NULL
   path <- .islh_manifest_path(dir)
   # Checked like every other write: a manifest that was never written would
   # make every later check report the project as unverified.
+  reason <- NULL
   written <- tryCatch(
     {
       utils::write.csv(entries, path, row.names = FALSE)
       file.exists(path)
     },
-    error = function(condition) FALSE,
-    warning = function(condition) FALSE
+    error = function(condition) {
+      reason <<- conditionMessage(condition)
+      FALSE
+    },
+    warning = function(condition) {
+      reason <<- conditionMessage(condition)
+      FALSE
+    }
   )
   if (!isTRUE(written)) {
-    .islh_abort(c(
-      "Could not write {.file {path}}.",
-      i = "Check that you have permission to write there."
-    ))
+    .islh_abort(
+      c(
+        "Could not write {.file {path}}.",
+        x = if (!is.null(reason)) "{reason}",
+        i = "Check that you have permission to write there."
+      ),
+      call = call
+    )
   }
   invisible(entries)
 }
@@ -192,7 +203,7 @@
 # unverified  differs from what is shipped and there is no manifest saying what
 #             was installed, so an edit and an old version cannot be told
 #             apart. Treated as edited, which is the safe reading.
-.islh_project_status <- function(dir) {
+.islh_project_status <- function(dir, call = rlang::caller_env()) {
   assets <- .islh_project_assets()
   manifest <- .islh_read_manifest(dir)
 
@@ -201,12 +212,15 @@
   # than fail inside the reader.
   folders <- assets$path[dir.exists(on_disk)]
   if (length(folders) > 0L) {
-    .islh_abort(c(
-      "{.file {folders}} {?is a folder/are folders}, where the project needs
-       {?a file/files}.",
-      i = "Move {cli::qty(length(folders))}{?it/them} aside, then run
-           {.fn islh_update_project}."
-    ))
+    .islh_abort(
+      c(
+        "{.file {folders}} {?is a folder/are folders}, where the project needs
+         {?a file/files}.",
+        i = "Move {cli::qty(length(folders))}{?it/them} aside, then run
+             {.fn islh_update_project}."
+      ),
+      call = call
+    )
   }
   present <- file.exists(on_disk)
   project_hash <- rep(NA_character_, nrow(assets))

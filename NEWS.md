@@ -43,8 +43,10 @@
 * The install command in messages asks for binaries only on Windows and
   macOS, where CRAN publishes them, as `islh_install_deps()` already did.
 * `islh_setup()` and `with_islh()` no longer load flextable and gtsummary
-  just to record their settings, and `islh_reset()` restores flextable
-  defaults only with settings it accepts.
+  just to record their settings. `islh_reset()` and `with_islh()` restore
+  flextable and gtsummary only when setup configured them, so settings made
+  after a plot-only setup survive, and pass flextable only settings it
+  accepts.
 * Help-page examples restore the font setting they change, so running one
   no longer turns BC Sans off for the rest of the session.
 * The help for `with_islh()` says that patchwork layouts are returned as

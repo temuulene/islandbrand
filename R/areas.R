@@ -332,7 +332,7 @@ islh_areas <- function(level = c("lha", "hsda")) {
 #'   scale_colour_islh_area(guide = "none") +
 #'   ggplot2::labs(x = NULL, y = "Rate per 100,000") +
 #'   theme_islh()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_fill_islh_area <- function(
@@ -494,7 +494,7 @@ scale_color_islh_area <- scale_colour_islh_area
 #'     coord_islh_map() +
 #'     theme_islh_map()
 #' }
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 islh_area_labels <- function(size = 4) {

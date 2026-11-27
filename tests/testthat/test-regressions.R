@@ -14,11 +14,20 @@ test_that("written paths are relative to the project folder", {
 })
 
 test_that("braces in a folder name are shown, not evaluated", {
-  parent <- withr::local_tempdir()
-  dir <- file.path(parent, "{draft}")
-  dir.create(dir)
-  messages <- testthat::capture_messages(islh_use_brand(dir))
-  expect_true(any(grepl("_brand.yml", messages, fixed = TRUE)))
+  # A backup folder sits inside the project, so its full path, braces and
+  # all, goes into the update message.
+  project <- file.path(withr::local_tempdir(), "{draft}")
+  suppressMessages(islh_create_report(project, example_data = FALSE))
+  writeLines("a local change", file.path(project, "_brand.yml"))
+  messages <- testthat::capture_messages(
+    islh_update_project(project, force = TRUE)
+  )
+  expect_true(any(grepl("{draft}", messages, fixed = TRUE)))
+  expect_true(any(grepl("_islh-backup", messages, fixed = TRUE)))
+
+  written <- file.path(withr::local_tempdir(), "{brand}")
+  dir.create(written)
+  expect_no_error(suppressMessages(islh_use_brand(written)))
 })
 
 test_that("folder and flag arguments are checked", {
@@ -144,12 +153,13 @@ test_that("tables refuse input that is not a table or data frame", {
 test_that("flextable groups gather unsorted rows and shade a missing group", {
   skip_if_not_installed("flextable")
   skip_if_not_installed("officer")
-  data <- data.frame(g = c("A", "B", "A", NA), v = 1:4)
+  # Two missing values apart from each other still share one heading.
+  data <- data.frame(g = c("A", NA, "B", "A", NA), v = 1:5)
   table <- suppressWarnings(islh_flextable(data, groupname_col = "g"))
   shown <- table$body$dataset
   headings <- is.na(shown$v)
-  expect_equal(shown$g[headings], c("A", "B", NA))
-  expect_equal(shown$v[!headings], c(1L, 3L, 2L, 4L))
+  expect_equal(shown$g[headings], c("A", NA, "B"))
+  expect_equal(shown$v[!headings], c(1L, 4L, 2L, 5L, 3L))
   # Every heading row, including the missing-value group, is shaded.
   shading <- table$body$styles$cells$background.color$data[, 1]
   expect_equal(length(unique(shading[headings])), 1L)
@@ -300,9 +310,81 @@ test_that("capturing the session does not load the table packages", {
   )
   output <- suppressWarnings(system2(
     file.path(R.home("bin"), "Rscript"),
-    c("-e", shQuote(script)),
+    c("--vanilla", "-e", shQuote(script)),
     stdout = TRUE,
     stderr = FALSE
   ))
   expect_true(any(grepl("FALSE FALSE", output, fixed = TRUE)))
+})
+
+test_that("reset leaves table engines alone when setup did not configure them", {
+  skip_if_not_installed("flextable")
+  local_clean_session()
+  expect_only_font_warnings(
+    suppressMessages(islh_setup(format = "plots", quiet = TRUE))
+  )
+  record <- islandbrand:::.islh_state$setup
+  expect_null(record$flextable)
+  expect_null(record$gtsummary)
+
+  # A setting made after a plot-only setup survives islh_reset().
+  old <- flextable::set_flextable_defaults(font.size = 17)
+  withr::defer(do.call(flextable::set_flextable_defaults, old))
+  suppressMessages(islh_reset())
+  expect_equal(flextable::get_flextable_defaults()$font.size, 17)
+
+  # So does one made inside a plot-only with_islh() block.
+  expect_only_font_warnings(with_islh(
+    flextable::set_flextable_defaults(font.size = 19),
+    format = "plots"
+  ))
+  expect_equal(flextable::get_flextable_defaults()$font.size, 19)
+})
+
+test_that("reset still restores the Word table defaults setup changed", {
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("officer")
+  local_clean_session()
+  old <- flextable::set_flextable_defaults(font.size = 17)
+  withr::defer(do.call(flextable::set_flextable_defaults, old))
+  expect_only_font_warnings(
+    suppressMessages(islh_setup(format = "docx", quiet = TRUE))
+  )
+  expect_equal(flextable::get_flextable_defaults()$font.size, 10)
+  suppressMessages(islh_reset())
+  expect_equal(flextable::get_flextable_defaults()$font.size, 17)
+
+  # A Word setup after a plot-only one is still undone by reset.
+  local_clean_session()
+  expect_only_font_warnings(
+    suppressMessages(islh_setup(format = "plots", quiet = TRUE))
+  )
+  expect_only_font_warnings(
+    suppressMessages(islh_setup(format = "docx", quiet = TRUE))
+  )
+  suppressMessages(islh_reset())
+  expect_equal(flextable::get_flextable_defaults()$font.size, 17)
+})
+
+test_that("examples restore the font and leave no variable behind", {
+  example_file <- testthat::test_path("..", "..", "man", "theme_islh.Rd")
+  if (!file.exists(example_file)) {
+    skip("needs the package source")
+  }
+  code <- withr::local_tempfile(fileext = ".R")
+  tools::Rd2ex(tools::parse_Rd(example_file), code)
+  state <- islandbrand:::.islh_state
+  had_font <- exists("font", envir = state, inherits = FALSE)
+  old_font <- if (had_font) state$font
+  withr::defer(
+    if (had_font) {
+      assign("font", old_font, envir = state)
+    } else if (exists("font", envir = state, inherits = FALSE)) {
+      rm("font", envir = state)
+    }
+  )
+  assign("font", "Test Sans", envir = state)
+  invisible(utils::capture.output(sys.source(code, envir = globalenv())))
+  expect_equal(state$font, "Test Sans")
+  expect_false(exists(".islh_example_font", envir = globalenv()))
 })

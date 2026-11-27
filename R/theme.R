@@ -78,7 +78,7 @@
 #'     y = "Miles per US gallon"
 #'   ) +
 #'   theme_islh(grid = "both")
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 theme_islh <- function(base_size = 13, grid = c("y", "x", "both", "none")) {
@@ -203,7 +203,7 @@ theme_islh <- function(base_size = 13, grid = c("y", "x", "both", "none")) {
 #'   ggplot2::geom_col(fill = islh_brand("primary")) +
 #'   scale_y_islh_count() +
 #'   theme_islh()
-#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 #'
 #' @export
 scale_y_islh_count <- function(

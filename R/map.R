@@ -86,7 +86,10 @@ islh_caption <- function(
     !.islh_is_string(source) ||
       !(.islh_is_string(extracted) || .islh_is_date(extracted))
   ) {
-    .islh_abort("{.arg source} and {.arg extracted} must each be one string.")
+    .islh_abort(c(
+      "{.arg source} and {.arg extracted} must each be one string, not empty.",
+      i = "{.arg extracted} can also be one {.cls Date}."
+    ))
   }
   optional <- list(
     boundary = boundary,

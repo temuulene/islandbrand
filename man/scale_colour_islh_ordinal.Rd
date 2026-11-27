@@ -51,6 +51,6 @@ ggplot2::ggplot(trend, ggplot2::aes(week, cases, colour = age)) +
   ggplot2::geom_line(linewidth = 1) +
   scale_colour_islh_ordinal() +
   theme_islh()
-\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand")); rm(.islh_example_font)}
 
 }
