@@ -317,7 +317,7 @@ test_that("capturing the session does not load the table packages", {
   expect_true(any(grepl("FALSE FALSE", output, fixed = TRUE)))
 })
 
-test_that("reset leaves table engines alone when setup did not configure them", {
+test_that("reset leaves table engines setup did not configure", {
   skip_if_not_installed("flextable")
   local_clean_session()
   expect_only_font_warnings(
