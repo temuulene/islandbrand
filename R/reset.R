@@ -74,16 +74,21 @@
     knitr_dev <- list(dev = knitr::opts_chunk$get("dev"))
   }
 
-  flextable <- NULL
-  if (requireNamespace("flextable", quietly = TRUE)) {
+  # flextable and gtsummary are read only if something has loaded them.
+  # Loading them here would cost a plot-only session the time, and an
+  # outdated copy loaded now would need a restart after islh_install_deps().
+  # A package that is not loaded still has its own defaults, which is what
+  # an empty record restores.
+  flextable <- list(defaults = NULL)
+  if (isNamespaceLoaded("flextable")) {
     flextable <- tryCatch(
       list(defaults = flextable::get_flextable_defaults()),
       error = function(condition) NULL
     )
   }
 
-  gtsummary <- NULL
-  if (requireNamespace("gtsummary", quietly = TRUE)) {
+  gtsummary <- list(theme = NULL)
+  if (isNamespaceLoaded("gtsummary")) {
     gtsummary <- tryCatch(
       list(theme = gtsummary::get_gtsummary_theme()),
       error = function(condition) NULL
@@ -154,23 +159,28 @@
     )
   }
 
-  if (
-    !is.null(state$flextable) &&
-      requireNamespace("flextable", quietly = TRUE)
-  ) {
+  # Nothing to restore in a package that is still not loaded: nothing here
+  # changed it.
+  if (!is.null(state$flextable) && isNamespaceLoaded("flextable")) {
+    defaults <- state$flextable$defaults
     attempt(
       "the flextable defaults",
-      tryCatch(
-        do.call(flextable::set_flextable_defaults, state$flextable$defaults),
-        error = function(condition) flextable::init_flextable_defaults()
-      )
+      if (is.null(defaults)) {
+        flextable::init_flextable_defaults()
+      } else {
+        # get_flextable_defaults() can return settings that
+        # set_flextable_defaults() does not take.
+        accepted <- names(formals(flextable::set_flextable_defaults))
+        defaults <- defaults[intersect(names(defaults), accepted)]
+        tryCatch(
+          do.call(flextable::set_flextable_defaults, defaults),
+          error = function(condition) flextable::init_flextable_defaults()
+        )
+      }
     )
   }
 
-  if (
-    !is.null(state$gtsummary) &&
-      requireNamespace("gtsummary", quietly = TRUE)
-  ) {
+  if (!is.null(state$gtsummary) && isNamespaceLoaded("gtsummary")) {
     theme <- state$gtsummary$theme
     attempt(
       "the gtsummary theme",
@@ -266,7 +276,9 @@ islh_reset <- function(quiet = FALSE) {
 #' restored, so it looks the same when printed afterwards. Anything the plot
 #' sets itself, such as its own scale or a `theme()` addition, still wins.
 #' Plots inside a plain list are handled too. Other objects are returned as
-#' they are.
+#' they are, and so are patchwork layouts: a patchwork returned from the block
+#' is drawn with whatever the session has when it is printed. Draw or save a
+#' patchwork inside the block.
 #'
 #' @examples
 #' before <- ggplot2::theme_get()

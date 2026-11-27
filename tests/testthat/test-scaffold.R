@@ -128,7 +128,10 @@ test_that("the install helper never reaches for pak or a source build", {
 
   command <- islh_check("docx", quiet = TRUE)$install_command
   expect_match(command, "install.packages(", fixed = TRUE)
-  expect_match(command, 'type = "binary"', fixed = TRUE)
+  expect_equal(
+    grepl('type = "binary"', command, fixed = TRUE),
+    islandbrand:::.islh_binary_platform()
+  )
   expect_false(grepl("pak::", command, fixed = TRUE))
 })
 

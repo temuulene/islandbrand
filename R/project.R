@@ -163,7 +163,23 @@
 .islh_write_manifest <- function(dir, entries) {
   entries <- entries[order(entries$path), .islh_manifest_columns, drop = FALSE]
   rownames(entries) <- NULL
-  utils::write.csv(entries, .islh_manifest_path(dir), row.names = FALSE)
+  path <- .islh_manifest_path(dir)
+  # Checked like every other write: a manifest that was never written would
+  # make every later check report the project as unverified.
+  written <- tryCatch(
+    {
+      utils::write.csv(entries, path, row.names = FALSE)
+      file.exists(path)
+    },
+    error = function(condition) FALSE,
+    warning = function(condition) FALSE
+  )
+  if (!isTRUE(written)) {
+    .islh_abort(c(
+      "Could not write {.file {path}}.",
+      i = "Check that you have permission to write there."
+    ))
+  }
   invisible(entries)
 }
 
@@ -181,6 +197,17 @@
   manifest <- .islh_read_manifest(dir)
 
   on_disk <- file.path(dir, assets$path)
+  # A folder where a file belongs cannot be hashed. Stop and say so, rather
+  # than fail inside the reader.
+  folders <- assets$path[dir.exists(on_disk)]
+  if (length(folders) > 0L) {
+    .islh_abort(c(
+      "{.file {folders}} {?is a folder/are folders}, where the project needs
+       {?a file/files}.",
+      i = "Move {cli::qty(length(folders))}{?it/them} aside, then run
+           {.fn islh_update_project}."
+    ))
+  }
   present <- file.exists(on_disk)
   project_hash <- rep(NA_character_, nrow(assets))
   project_hash[present] <- .islh_hash(on_disk[present])
@@ -556,14 +583,9 @@ islh_update_project <- function(
   if (length(backed_up) > 0L) {
     bullets <- c(
       bullets,
-      "i" = paste0(
-        "{cli::qty(",
-        length(backed_up),
-        ")}The previous file{?s} {?is/are} in ",
-        "{.file ",
-        backup_dir,
-        "}."
-      )
+      # The folder goes in as a cli value, so braces in a path are shown.
+      "i" = "{cli::qty(length(backed_up))}The previous file{?s} {?is/are} in
+             {.file {backup_dir}}."
     )
   }
   if (dry_run) {

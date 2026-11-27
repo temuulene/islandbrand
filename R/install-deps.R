@@ -82,13 +82,7 @@ islh_install_deps <- function(
 
   # Linux builds from source because CRAN publishes no Linux binaries; there,
   # asking for "binary" would fail outright.
-  type <- if (
-    .Platform$OS.type == "windows" || Sys.info()[["sysname"]] == "Darwin"
-  ) {
-    "binary"
-  } else {
-    getOption("pkgType")
-  }
+  type <- if (.islh_binary_platform()) "binary" else getOption("pkgType")
 
   .islh_install_packages(wanted, type = type)
 
@@ -102,7 +96,8 @@ islh_install_deps <- function(
   after <- if (format == "both") {
     html <- islh_check("html", quiet = TRUE, interactive = interactive)
     docx <- islh_check("docx", quiet = TRUE)
-    if (html$ok) docx else html
+    # Report what is still wrong for either format, not only the first.
+    .islh_merge_checks(html, docx)
   } else {
     islh_check(format = check$format, quiet = TRUE, interactive = interactive)
   }
@@ -135,4 +130,25 @@ islh_install_deps <- function(
 # `islh_install_deps()`.
 .islh_install_packages <- function(packages, type) {
   utils::install.packages(packages, type = type)
+}
+
+# One readiness result covering two formats, so a warning names every package
+# that is still missing or too old.
+.islh_merge_checks <- function(first, second) {
+  missing <- unique(c(first$missing, second$missing))
+  outdated <- unique(c(first$outdated, second$outdated))
+  required <- unique(c(first$required, second$required))
+  first$ok <- isTRUE(first$ok) && isTRUE(second$ok)
+  first$format <- "both"
+  first$required <- required
+  first$missing <- missing
+  first$outdated <- outdated
+  first$install_command <- .islh_install_command(
+    if (length(missing) > 0L || length(outdated) > 0L) {
+      c(missing, outdated)
+    } else {
+      required
+    }
+  )
+  first
 }

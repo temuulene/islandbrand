@@ -79,9 +79,23 @@ test_that("dependency checks are format-specific", {
 test_that("the install command never reaches for pak or a source build", {
   command <- islh_check("html", quiet = TRUE)$install_command
   expect_match(command, "install.packages(", fixed = TRUE)
-  expect_match(command, 'type = "binary"', fixed = TRUE)
+  expect_equal(
+    grepl('type = "binary"', command, fixed = TRUE),
+    islandbrand:::.islh_binary_platform()
+  )
   expect_false(grepl("pak::", command, fixed = TRUE))
   expect_false(grepl('type = "source"', command, fixed = TRUE))
+
+  # Binaries where CRAN has them; elsewhere R chooses, since asking Linux
+  # for a binary fails outright.
+  expect_identical(
+    islandbrand:::.islh_install_command("gt", binary = TRUE),
+    'install.packages(c("gt"), type = "binary")'
+  )
+  expect_identical(
+    islandbrand:::.islh_install_command("gt", binary = FALSE),
+    'install.packages(c("gt"))'
+  )
 })
 
 test_that("a package that is present but too old is reported as such", {
@@ -118,6 +132,7 @@ test_that("a package that is present but too old is reported as such", {
 
 test_that("plot setup is repeatable and leaves the session as it found it", {
   skip_if_not_installed("ggplot2")
+  local_clean_session()
   withr::local_options(list(
     islh.output_format = NULL,
     islh.embed_fonts = NULL,
@@ -142,6 +157,7 @@ test_that("plot setup is repeatable and leaves the session as it found it", {
 
 test_that("HTML setup never initializes the Word table engine", {
   skip_if_not_installed("gt")
+  local_clean_session()
   withr::local_options(list(islh.output_format = NULL))
   old_theme <- ggplot2::theme_get()
   withr::defer(ggplot2::theme_set(old_theme))
