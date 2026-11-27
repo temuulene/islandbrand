@@ -15,7 +15,9 @@
 #' @param style `"bars"` for routine surveillance or `"cases"` to draw one
 #'   outlined rectangle per case. Case tiles are intended for small outbreaks.
 #' @param position Stack or dodge grouped bars. Case tiles require stacking.
-#' @param labels Show no labels or total counts above each period.
+#' @param labels Show no labels or total counts above each period. Totals
+#'   need stacked bars: with `position = "dodge"` and a `fill` group, each bar
+#'   shows one group, so a total above them would float over empty space.
 #' @param reference Optional data frame containing a date column and one or more
 #'   of `lower_limit`, `upper_limit` and `reference_mean`, with one row per
 #'   date. When it also contains the `facet` column it needs one row per date
@@ -83,9 +85,8 @@
 #' the function cannot tell an absent row from a period nobody reported on.
 #'
 #' @examples
-#' \dontshow{
-#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))
-#' }
+#' \dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+#' assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 #' curve_data <- data.frame(
 #'   week = seq(as.Date("2026-01-04"), by = "week", length.out = 12),
 #'   cases = c(1, 2, 3, 5, 8, 13, 10, 7, 5, 3, 2, 1),
@@ -99,6 +100,7 @@
 #'   fill = source,
 #'   title = "Reported cases by week"
 #' )
+#' \dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
 #'
 #' @export
 islh_epi_curve <- function(
@@ -148,6 +150,14 @@ islh_epi_curve <- function(
     "fill",
     optional = TRUE
   )
+  if (labels == "total" && position == "dodge" && !is.null(fill_name)) {
+    .islh_abort(c(
+      "{.code labels = \"total\"} needs stacked bars.",
+      i = "Dodged bars each show one {.arg fill} group, so a period total
+           would sit above empty space. Use {.code position = \"stack\"},
+           or drop the labels."
+    ))
+  }
   facet_name <- .islh_plot_column(
     data,
     rlang::enquo(facet),
@@ -207,7 +217,13 @@ islh_epi_curve <- function(
     lower = lower,
     upper = upper,
     reference_mean = reference_mean,
-    offset = offset
+    offset = offset,
+    # Default names may be absent; a name the caller typed must exist.
+    named = c(
+      lower = !missing(lower),
+      upper = !missing(upper),
+      reference_mean = !missing(reference_mean)
+    )
   )
   if (!is.null(reference_layers$ribbon)) {
     plot <- plot + reference_layers$ribbon
@@ -460,6 +476,9 @@ islh_epi_curve <- function(
   optional = FALSE,
   call = rlang::caller_env()
 ) {
+  if (rlang::quo_is_missing(quo)) {
+    .islh_abort("{.arg {arg}} must select one column.", call = call)
+  }
   if (rlang::quo_is_null(quo)) {
     if (isTRUE(optional)) {
       return(NULL)
@@ -592,6 +611,7 @@ islh_epi_curve <- function(
   upper,
   reference_mean,
   offset = 0,
+  named = c(lower = FALSE, upper = FALSE, reference_mean = FALSE),
   call = rlang::caller_env()
 ) {
   empty <- list(ribbon = NULL, line = NULL)
@@ -659,6 +679,25 @@ islh_epi_curve <- function(
         call = call
       )
     }
+  }
+
+  chosen <- list(lower = lower, upper = upper, reference_mean = reference_mean)
+  absent <- names(chosen)[vapply(
+    names(chosen),
+    function(field) {
+      isTRUE(named[[field]]) &&
+        !is.null(chosen[[field]]) &&
+        !chosen[[field]] %in% names(reference)
+    },
+    logical(1)
+  )]
+  if (length(absent) > 0L) {
+    columns <- unlist(chosen[absent])
+    .islh_abort(
+      "{.arg reference} has no column {.field {columns}}, named by
+       {.arg {absent}}.",
+      call = call
+    )
   }
 
   has_lower <- !is.null(lower) && lower %in% names(reference)

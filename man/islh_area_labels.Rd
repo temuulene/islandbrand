@@ -32,7 +32,8 @@ or more. On a map zoomed to part of it, such as an inset, label the areas
 yourself.
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 if (requireNamespace("sf", quietly = TRUE)) {
   lha <- islh_example_lha()
 
@@ -47,6 +48,7 @@ if (requireNamespace("sf", quietly = TRUE)) {
     coord_islh_map() +
     theme_islh_map()
 }
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
 
 }
 \seealso{

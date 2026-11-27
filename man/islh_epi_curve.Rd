@@ -48,7 +48,9 @@ outlined rectangle per case. Case tiles are intended for small outbreaks.}
 
 \item{position}{Stack or dodge grouped bars. Case tiles require stacking.}
 
-\item{labels}{Show no labels or total counts above each period.}
+\item{labels}{Show no labels or total counts above each period. Totals
+need stacked bars: with \code{position = "dodge"} and a \code{fill} group, each bar
+shows one group, so a total above them would float over empty space.}
 
 \item{reference}{Optional data frame containing a date column and one or more
 of \code{lower_limit}, \code{upper_limit} and \code{reference_mean}, with one row per
@@ -140,9 +142,8 @@ the function cannot tell an absent row from a period nobody reported on.
 }
 
 \examples{
-\dontshow{
-assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))
-}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 curve_data <- data.frame(
   week = seq(as.Date("2026-01-04"), by = "week", length.out = 12),
   cases = c(1, 2, 3, 5, 8, 13, 10, 7, 5, 3, 2, 1),
@@ -156,5 +157,6 @@ islh_epi_curve(
   fill = source,
   title = "Reported cases by week"
 )
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
 
 }
