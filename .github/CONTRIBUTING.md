@@ -118,7 +118,7 @@ applies style overrides on top.
 
 Details the build script already handles, which a change should keep:
 
-- The script needs `pandoc` and Python's `lxml`.
+- The script needs `pandoc` and the Python 3 standard library only.
 - Pandoc's reference doc *used* to ship an empty self-closing `<w:sectPr/>`.
   Since pandoc 3.8 it ships a populated one carrying footnote settings. The
   script handles both, and carries `w:footnotePr`/`w:endnotePr` across rather
@@ -163,7 +163,9 @@ it. Order NEWS entries alphabetically by function name.
 
 To release a version:
 
-1. Set `Version:` in `DESCRIPTION` and add a `NEWS.md` heading for it.
+1. Set `Version:` in `DESCRIPTION`, set the same `version:` in
+   `inst/quarto/_extensions/islh/islh-report/_extension.yml` (a test checks
+   that they match), and add a `NEWS.md` heading for it.
 2. Run the `release` workflow by hand from the Actions tab. This rehearsal
    builds, checks and test-installs everything, and publishes nothing.
 3. Tag that commit `vX.Y.Z`, matching `DESCRIPTION`, and push the tag. The

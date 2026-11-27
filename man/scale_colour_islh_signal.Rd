@@ -21,7 +21,8 @@ A ggplot2 discrete scale.
 Island Health signal colour scale
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 coverage <- data.frame(
   week = rep(1:4, times = 2),
   site = rep(c("North", "South"), each = 4),
@@ -40,5 +41,6 @@ ggplot2::ggplot(
     labels = c("On target", "Below target")
   ) +
   theme_islh()
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
 
 }

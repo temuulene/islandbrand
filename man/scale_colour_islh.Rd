@@ -23,7 +23,8 @@ A ggplot2 discrete scale.
 Island Health qualitative colour scale
 }
 \examples{
-\dontshow{assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
+\dontshow{.islh_example_font <- get0("font", getFromNamespace(".islh_state", "islandbrand"), inherits = FALSE)
+assign("font", "", envir = getFromNamespace(".islh_state", "islandbrand"))}
 ggplot2::ggplot(
   datasets::mtcars,
   ggplot2::aes(wt, mpg, colour = factor(cyl))
@@ -32,5 +33,6 @@ ggplot2::ggplot(
   scale_colour_islh() +
   ggplot2::labs(colour = "Cylinders") +
   theme_islh()
+\dontshow{if (is.null(.islh_example_font)) rm("font", envir = getFromNamespace(".islh_state", "islandbrand")) else assign("font", .islh_example_font, envir = getFromNamespace(".islh_state", "islandbrand"))}
 
 }
